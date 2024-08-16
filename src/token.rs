@@ -2,15 +2,15 @@ use strum_macros::EnumString;
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, EnumString, Clone, Copy, Hash)]
 pub enum TokenType {
-    #[strum(serialize = "ILLEGAL")]
+    // #[strum(serialize = "ILLEGAL")]
     ILLEGAL,
-    #[strum(serialize = "EOF")]
+    // #[strum(serialize = "EOF")]
     EOF,
 
     // Identifiers + literals
-    #[strum(serialize = "IDENT")]
+    // #[strum(serialize = "IDENT")]
     IDENT,
-    #[strum(serialize = "INT")]
+    // #[strum(serialize = "INT")]
     INT,
 
     // Operators
@@ -36,9 +36,9 @@ pub enum TokenType {
     RBRACE,
 
     // Keywords
-    #[strum(serialize = "FUNCTION")]
+    // #[strum(serialize = "FUNCTION")]
     FUNCTION,
-    #[strum(serialize = "LET")]
+    // #[strum(serialize = "LET")]
     LET,
 }
 
@@ -46,4 +46,21 @@ pub enum TokenType {
 pub struct Token {
     pub token_type: TokenType,
     pub literal: String,
+}
+
+impl Token {
+    pub fn new(token_type: TokenType, literal: String) -> Token {
+        Token {
+            token_type,
+            literal,
+        }
+    }
+
+    pub fn from_char(token_type: TokenType, ch: char) -> Token {
+        Token::new(token_type, ch.to_string())
+    }
+
+    pub fn from_str(token_type: TokenType, str: &str) -> Token {
+        Token::new(token_type, str.to_string())
+    }
 }
