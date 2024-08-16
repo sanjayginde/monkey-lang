@@ -3,43 +3,43 @@ use strum_macros::EnumString;
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, EnumString, Clone, Copy, Hash)]
 pub enum TokenType {
     // #[strum(serialize = "ILLEGAL")]
-    ILLEGAL,
+    Illegal,
     // #[strum(serialize = "EOF")]
-    EOF,
+    Eof,
 
     // Identifiers + literals
     // #[strum(serialize = "IDENT")]
-    IDENT,
+    Ident,
     // #[strum(serialize = "INT")]
-    INT,
+    Int,
 
     // Operators
     #[strum(serialize = "=")]
-    ASSIGN,
+    Assign,
 
     #[strum(serialize = "+")]
-    PLUS,
+    Plus,
 
     // Delimiters
     #[strum(serialize = ",")]
-    COMMA,
+    Comma,
     #[strum(serialize = ";")]
-    SEMICOLON,
+    Semicolon,
 
     #[strum(serialize = "(")]
-    LPAREN,
+    LeftParen,
     #[strum(serialize = ")")]
-    RPAREN,
+    RightParen,
     #[strum(serialize = "{")]
-    LBRACE,
+    LeftBrace,
     #[strum(serialize = "}")]
-    RBRACE,
+    RightBrace,
 
     // Keywords
     // #[strum(serialize = "FUNCTION")]
-    FUNCTION,
+    Function,
     // #[strum(serialize = "LET")]
-    LET,
+    Let,
 }
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Clone, Hash)]

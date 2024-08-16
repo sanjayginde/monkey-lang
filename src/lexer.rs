@@ -29,29 +29,29 @@ impl Lexer {
         }
 
         self.position = self.read_position;
-        self.read_position = self.read_position + 1;
+        self.read_position += 1;
     }
 
     pub fn next_token(&mut self) -> Token {
         if self.ch.is_none() {
-            return Token::from_str(EOF, "");
+            return Token::from_str(Eof, "");
         }
 
         let ch = self.ch.unwrap();
         self.read_char();
 
         println!("sym: {}", ch);
-        return match ch {
-            '=' => Token::from_char(ASSIGN, ch),
-            ';' => Token::from_char(SEMICOLON, ch),
-            '(' => Token::from_char(LPAREN, ch),
-            ')' => Token::from_char(RPAREN, ch),
-            ',' => Token::from_char(COMMA, ch),
-            '+' => Token::from_char(PLUS, ch),
-            '{' => Token::from_char(LBRACE, ch),
-            '}' => Token::from_char(RBRACE, ch),
-            _ => Token::from_char(ILLEGAL, ch),
-        };
+        match ch {
+            '=' => Token::from_char(Assign, ch),
+            ';' => Token::from_char(Semicolon, ch),
+            '(' => Token::from_char(LeftParen, ch),
+            ')' => Token::from_char(RightParen, ch),
+            ',' => Token::from_char(Comma, ch),
+            '+' => Token::from_char(Plus, ch),
+            '{' => Token::from_char(LeftBrace, ch),
+            '}' => Token::from_char(RightBrace, ch),
+            _ => Token::from_char(Illegal, ch),
+        }
     }
 }
 
@@ -69,15 +69,15 @@ mod test {
         let mut lexer = Lexer::new(input.to_string());
 
         let expected = vec![
-            Token::from_str(ASSIGN, "="),
-            Token::from_str(PLUS, "+"),
-            Token::from_str(LPAREN, "("),
-            Token::from_str(RPAREN, ")"),
-            Token::from_str(LBRACE, "{"),
-            Token::from_str(RBRACE, "}"),
-            Token::from_str(COMMA, ","),
-            Token::from_str(SEMICOLON, ";"),
-            Token::from_str(EOF, ""),
+            Token::from_str(Assign, "="),
+            Token::from_str(Plus, "+"),
+            Token::from_str(LeftParen, "("),
+            Token::from_str(RightParen, ")"),
+            Token::from_str(LeftBrace, "{"),
+            Token::from_str(RightBrace, "}"),
+            Token::from_str(Comma, ","),
+            Token::from_str(Semicolon, ";"),
+            Token::from_str(Eof, ""),
         ];
 
         for token in expected {
