@@ -21,12 +21,7 @@ impl Lexer {
     }
 
     pub fn read_char(&mut self) {
-        if self.read_position > self.input.len() {
-            self.ch = None;
-        } else {
-            self.ch = self.input.chars().nth(self.read_position);
-        }
-
+        self.ch = self.input.chars().nth(self.read_position);
         self.position = self.read_position;
         self.read_position += 1;
     }
@@ -40,12 +35,30 @@ impl Lexer {
         self.read_char();
 
         match ch {
-            '=' => Assign,
+            '=' => match self.ch {
+                Some('=') => {
+                    self.read_char();
+                    Equal
+                }
+                _ => Assign,
+            },
+            '+' => Plus,
+            '-' => Minus,
+            '!' => match self.ch {
+                Some('=') => {
+                    self.read_char();
+                    NotEqual
+                }
+                _ => Bang,
+            },
+            '*' => Asterisk,
+            '/' => Slash,
+            '<' => LessThan,
+            '>' => GreaterThan,
             ';' => Semicolon,
             '(' => LeftParen,
             ')' => RightParen,
             ',' => Comma,
-            '+' => Plus,
             '{' => LeftBrace,
             '}' => RightBrace,
             _ => {
@@ -64,8 +77,13 @@ impl Lexer {
                     }
 
                     match literal.as_str() {
-                        "let" => Let,
                         "fn" => Function,
+                        "let" => Let,
+                        "true" => True,
+                        "false" => False,
+                        "if" => If,
+                        "else" => Else,
+                        "return" => Return,
                         _ => Ident(literal),
                     }
                 } else if ch.is_ascii_digit() {
@@ -120,6 +138,18 @@ let add = fn(x, y) {
 };
 
 let result = add(five, ten);
+!-/*5;
+5 < 10 > 5;
+
+if (5 < 10) {
+    return true;
+} else {
+    return false;
+}
+
+10 == 10;
+10 != 9;
+
 "#;
         let mut lexer = Lexer::new(input.to_string());
 
@@ -160,12 +190,49 @@ let result = add(five, ten);
             Ident("ten".to_string()),
             RightParen,
             Semicolon,
+            Bang,
+            Minus,
+            Slash,
+            Asterisk,
+            Int(5),
+            Semicolon,
+            Int(5),
+            LessThan,
+            Int(10),
+            GreaterThan,
+            Int(5),
+            Semicolon,
+            If,
+            LeftParen,
+            Int(5),
+            LessThan,
+            Int(10),
+            RightParen,
+            LeftBrace,
+            Return,
+            True,
+            Semicolon,
+            RightBrace,
+            Else,
+            LeftBrace,
+            Return,
+            False,
+            Semicolon,
+            RightBrace,
+            Int(10),
+            Equal,
+            Int(10),
+            Semicolon,
+            Int(10),
+            NotEqual,
+            Int(9),
+            Semicolon,
             Eof,
         ];
 
         for token in expected {
             let next_token = lexer.next_token();
-            println!("{:?}", token);
+            println!("{:?}", next_token);
             assert_eq!(next_token, token);
         }
     }
