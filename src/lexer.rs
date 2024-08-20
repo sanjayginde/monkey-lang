@@ -1,5 +1,4 @@
-use crate::token::Token;
-use crate::token::TokenType::*;
+use crate::token::Token::{self, *};
 
 pub struct Lexer {
     input: String,
@@ -34,29 +33,28 @@ impl Lexer {
 
     pub fn next_token(&mut self) -> Token {
         if self.ch.is_none() {
-            return Token::from_str(Eof, "");
+            return Eof;
         }
 
         let ch = self.ch.unwrap();
         self.read_char();
 
-        println!("sym: {}", ch);
         match ch {
-            '=' => Token::from_char(Assign, ch),
-            ';' => Token::from_char(Semicolon, ch),
-            '(' => Token::from_char(LeftParen, ch),
-            ')' => Token::from_char(RightParen, ch),
-            ',' => Token::from_char(Comma, ch),
-            '+' => Token::from_char(Plus, ch),
-            '{' => Token::from_char(LeftBrace, ch),
-            '}' => Token::from_char(RightBrace, ch),
+            '=' => Assign,
+            ';' => Semicolon,
+            '(' => LeftParen,
+            ')' => RightParen,
+            ',' => Comma,
+            '+' => Plus,
+            '{' => LeftBrace,
+            '}' => RightBrace,
             _ => {
                 if ch.is_whitespace() {
                     while self.ch.is_some() && self.ch.unwrap().is_whitespace() {
                         self.read_char();
                     }
 
-                    return self.next_token();
+                    self.next_token()
                 } else if ch.is_alphabetic() {
                     let mut literal = String::new();
                     literal.push(ch);
@@ -66,21 +64,25 @@ impl Lexer {
                     }
 
                     match literal.as_str() {
-                        "let" => Token::from_str(Let, &literal),
-                        "fn" => Token::from_str(Function, &literal),
-                        _ => Token::from_str(Ident, &literal),
+                        "let" => Let,
+                        "fn" => Function,
+                        _ => Ident(literal),
                     }
-                } else if ch.is_digit(10) {
+                } else if ch.is_ascii_digit() {
                     let mut literal = String::new();
                     literal.push(ch);
-                    while self.ch.is_some() && self.ch.unwrap().is_digit(10) {
+                    while self.ch.is_some() && self.ch.unwrap().is_ascii_digit() {
                         literal.push(self.ch.unwrap());
                         self.read_char();
                     }
 
-                    Token::from_str(Int, &literal)
+                    let possible_int = literal.parse();
+                    match possible_int {
+                        Ok(int) => Int(int),
+                        Err(_) => Illegal(literal),
+                    }
                 } else {
-                    Token::from_char(Illegal, ch)
+                    Illegal(ch.to_string())
                 }
             }
         }
@@ -89,8 +91,7 @@ impl Lexer {
 
 #[cfg(test)]
 mod test {
-    use crate::token::Token;
-    use crate::token::TokenType::*;
+    use crate::token::Token::*;
 
     use super::Lexer;
 
@@ -100,15 +101,7 @@ mod test {
         let mut lexer = Lexer::new(input.to_string());
 
         let expected = vec![
-            Token::from_str(Assign, "="),
-            Token::from_str(Plus, "+"),
-            Token::from_str(LeftParen, "("),
-            Token::from_str(RightParen, ")"),
-            Token::from_str(LeftBrace, "{"),
-            Token::from_str(RightBrace, "}"),
-            Token::from_str(Comma, ","),
-            Token::from_str(Semicolon, ";"),
-            Token::from_str(Eof, ""),
+            Assign, Plus, LeftParen, RightParen, LeftBrace, RightBrace, Comma, Semicolon, Eof,
         ];
 
         for token in expected {
@@ -131,43 +124,43 @@ let result = add(five, ten);
         let mut lexer = Lexer::new(input.to_string());
 
         let expected = vec![
-            Token::from_str(Let, "let"),
-            Token::from_str(Ident, "five"),
-            Token::from_str(Assign, "="),
-            Token::from_str(Int, "5"),
-            Token::from_str(Semicolon, ";"),
-            Token::from_str(Let, "let"),
-            Token::from_str(Ident, "ten"),
-            Token::from_str(Assign, "="),
-            Token::from_str(Int, "10"),
-            Token::from_str(Semicolon, ";"),
-            Token::from_str(Let, "let"),
-            Token::from_str(Ident, "add"),
-            Token::from_str(Assign, "="),
-            Token::from_str(Function, "fn"),
-            Token::from_str(LeftParen, "("),
-            Token::from_str(Ident, "x"),
-            Token::from_str(Comma, ","),
-            Token::from_str(Ident, "y"),
-            Token::from_str(RightParen, ")"),
-            Token::from_str(LeftBrace, "{"),
-            Token::from_str(Ident, "x"),
-            Token::from_str(Plus, "+"),
-            Token::from_str(Ident, "y"),
-            Token::from_str(Semicolon, ";"),
-            Token::from_str(RightBrace, "}"),
-            Token::from_str(Semicolon, ";"),
-            Token::from_str(Let, "let"),
-            Token::from_str(Ident, "result"),
-            Token::from_str(Assign, "="),
-            Token::from_str(Ident, "add"),
-            Token::from_str(LeftParen, "("),
-            Token::from_str(Ident, "five"),
-            Token::from_str(Comma, ","),
-            Token::from_str(Ident, "ten"),
-            Token::from_str(RightParen, ")"),
-            Token::from_str(Semicolon, ";"),
-            Token::from_str(Eof, ""),
+            Let,
+            Ident("five".to_string()),
+            Assign,
+            Int(5),
+            Semicolon,
+            Let,
+            Ident("ten".to_string()),
+            Assign,
+            Int(10),
+            Semicolon,
+            Let,
+            Ident("add".to_string()),
+            Assign,
+            Function,
+            LeftParen,
+            Ident("x".to_string()),
+            Comma,
+            Ident("y".to_string()),
+            RightParen,
+            LeftBrace,
+            Ident("x".to_string()),
+            Plus,
+            Ident("y".to_string()),
+            Semicolon,
+            RightBrace,
+            Semicolon,
+            Let,
+            Ident("result".to_string()),
+            Assign,
+            Ident("add".to_string()),
+            LeftParen,
+            Ident("five".to_string()),
+            Comma,
+            Ident("ten".to_string()),
+            RightParen,
+            Semicolon,
+            Eof,
         ];
 
         for token in expected {
