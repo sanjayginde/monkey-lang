@@ -1,14 +1,14 @@
 use crate::token::Token::{self, *};
 
-pub struct Lexer {
-    input: String,
+pub struct Lexer<'a> {
+    input: &'a String,
     position: usize,      // current position in input (points to current char)
     read_position: usize, // current reading position in input (after current char)
     ch: Option<char>,     // current char under examination
 }
 
-impl Lexer {
-    pub fn new(input: String) -> Lexer {
+impl Lexer<'_> {
+    pub fn new(input: &String) -> Lexer {
         let mut result = Lexer {
             input,
             position: 0,
@@ -107,6 +107,19 @@ impl Lexer {
     }
 }
 
+impl Iterator for Lexer<'_> {
+    type Item = Token;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let token = self.next_token();
+        if token == Eof {
+            None
+        } else {
+            Some(token)
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use crate::token::Token::*;
@@ -115,8 +128,8 @@ mod test {
 
     #[test]
     fn test_next_token_simple() {
-        let input = "=+(){},;";
-        let mut lexer = Lexer::new(input.to_string());
+        let input = "=+(){},;".to_string();
+        let mut lexer = Lexer::new(&input);
 
         let expected = vec![
             Assign, Plus, LeftParen, RightParen, LeftBrace, RightBrace, Comma, Semicolon, Eof,
@@ -150,8 +163,9 @@ if (5 < 10) {
 10 == 10;
 10 != 9;
 
-"#;
-        let mut lexer = Lexer::new(input.to_string());
+"#
+        .to_string();
+        let mut lexer = Lexer::new(&input);
 
         let expected = vec![
             Let,
