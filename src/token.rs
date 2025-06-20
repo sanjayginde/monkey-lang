@@ -1,4 +1,6 @@
-#[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Hash)]
+use std::fmt;
+
+#[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Hash, Clone)]
 pub enum Token {
     Illegal(String),
     Eof,
@@ -37,3 +39,18 @@ pub enum Token {
     Else,
     Return,
 }
+
+impl fmt::Display for Token {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        // write!(f, "{:?}", self)
+        // or, alternatively:
+        fmt::Debug::fmt(self, f)
+    }
+}
+
+trait TokenTrait {}
+pub struct Identifier {
+    pub name: String,
+}
+
+impl TokenTrait for Identifier {}

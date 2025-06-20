@@ -11,7 +11,7 @@ pub fn start_repl() {
 
         match io::stdin().read_line(&mut input) {
             Ok(_n) => {
-                let lexer = Lexer::new(&input);
+                let lexer = Lexer::new(input.clone());
                 for token in lexer {
                     println!("{:?}", token);
                 }
