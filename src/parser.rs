@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::fmt::{self, Display};
 
-use crate::ast::{Expression, Identifier, IntegerLiteral, LetStatement, Program};
+use crate::ast::{Expression, Identifier, IntegerLiteral, LetStatement, OperatorExpression, Program};
 use crate::lexer::Lexer;
 use crate::token::Token;
 
@@ -96,7 +96,7 @@ fn parse_identifier(parser: &mut Parser) -> Result<Identifier, ParserError> {
     let token = parser.curr_token.as_ref();
 
     match token {
-        Some(Token::Ident(name)) => Ok(Identifier {
+        Some(Token::Identifier(name)) => Ok(Identifier {
             token: token.unwrap().clone(),
             name: name.clone(),
         }),
@@ -110,14 +110,14 @@ fn parse_expression(parser: &mut Parser) -> Result<Box<dyn Expression>, ParserEr
     match token {
         Some(Token::Int(value)) => {
             match parser.peek_token {
-                Some(Token::Plus) => {
-                    return Err(ParserError::Unimplemented("Parsing prefix expressions not implemented, got +".to_string()));
+                Some(Token::Plus) | Some(Token::Minus) | Some(Token::Asterisk) | Some(Token::Slash) => {
+                    Ok(Box::new(parse_operator_expression(parser)?))
                 },
                 Some(Token::Semicolon) => {
-                    return Ok(Box::new(IntegerLiteral {
+                    Ok(Box::new(IntegerLiteral {
                         token: parser.curr_token.as_ref().unwrap().clone(),
                         value: *value,
-                    }));
+                    }))
                 },
                 _ => {
                     Err(ParserError::UnexpectedToken(format!("Expected '+' or ';', got ${}", parser.peek_token.as_ref().unwrap())))
@@ -132,6 +132,46 @@ fn parse_expression(parser: &mut Parser) -> Result<Box<dyn Expression>, ParserEr
         }
     }
 }
+
+fn parse_integer_literal(parser: &mut Parser) -> Result<IntegerLiteral, ParserError> {
+    let token = parser.curr_token.as_ref();
+    
+    match token {
+        Some(Token::Int(value)) => {
+            Ok(IntegerLiteral {
+                token: token.unwrap().clone(),
+                value: *value,
+            })
+        },
+        _ => {
+            Err(ParserError::UnexpectedToken(format!("Expected integer literal, got ${}", token.unwrap())))
+        }
+    }
+}
+
+fn parse_operator_expression(parser: &mut Parser) -> Result<OperatorExpression, ParserError> {
+
+    let left = parse_integer_literal(parser)?;
+    parser.advance_tokens();
+
+    let operator = parser.curr_token.as_ref();
+
+    match operator {
+        Some(Token::Plus) | Some(Token::Minus) | Some(Token::Asterisk) | Some(Token::Slash) => {
+            let operator = parser.curr_token.as_ref().unwrap().clone();
+            parser.advance_tokens();
+            Ok(OperatorExpression {
+                left: left,
+                operator: operator,
+                right: parse_integer_literal(parser)?,
+            })
+        },
+        _ => {
+            Err(ParserError::UnexpectedToken(format!("Expected operator, got ${}", operator.unwrap())))
+        }
+    }
+}
+
 
 #[derive(Debug)]
 pub enum ParserError {
@@ -151,7 +191,7 @@ impl Error for ParserError {}
 
 #[cfg(test)]
 mod test {
-    use crate::{ast::Statement, lexer::Lexer};
+    use crate::{ast::{Node, Statement}, lexer::Lexer};
 
     use super::*;
 
@@ -165,8 +205,22 @@ mod test {
         let let_stmt = result.unwrap();
 
         assert_eq!(let_stmt.token, Token::Let);
-        assert_eq!(let_stmt.name.name, "x");
-        // TODO  assert_eq!(let_stmt.value, "5");
+        assert_eq!(let_stmt.name.token_literal(), "Identifier(\"x\")");
+        assert_eq!(let_stmt.value.token_literal(), "Int(5)");
+    }
+
+    #[test]
+    fn test_parse_let_with_operator_statement() {
+        let input = "let x = 5 + 5;".to_string();
+        let mut lexer = Lexer::new(input);
+        let mut parser = Parser::new(&mut lexer);
+
+        let result = parse_let_statement(&mut parser);
+        let let_stmt = result.unwrap();
+
+        assert_eq!(let_stmt.token, Token::Let);
+        assert_eq!(let_stmt.name.token_literal(), "Identifier(\"x\")");
+        assert_eq!(let_stmt.value.token_literal(), "Plus");
     }
 
     #[test]

@@ -61,7 +61,6 @@ impl Node for Identifier {
     }
 }
 
-
 pub struct IntegerLiteral {
     pub token: Token,
     pub value: i64,
@@ -74,6 +73,24 @@ impl Node for IntegerLiteral {
 }
 
 impl Expression for IntegerLiteral {
+    fn expression_node(&self) {
+        todo!()
+    }
+}
+
+pub struct OperatorExpression {
+    pub left: IntegerLiteral,
+    pub operator: Token,
+    pub right: IntegerLiteral,
+}
+
+impl Node for OperatorExpression {
+    fn token_literal(&self) -> String {
+        self.operator.to_string()
+    }
+}
+
+impl Expression for OperatorExpression {
     fn expression_node(&self) {
         todo!()
     }
