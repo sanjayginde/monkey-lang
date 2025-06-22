@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::fmt::{self, Display};
 
-use crate::ast::{Expression, Identifier, IntegerLiteral, LetStatement, OperatorExpression, Program};
+use crate::ast::{Expression, Identifier, IntegerLiteral, LetStatement, OperatorExpression, Program, ReturnStatement, Statement};
 use crate::lexer::Lexer;
 use crate::token::Token;
 
@@ -36,16 +36,22 @@ impl Parser<'_> {
         let mut program = Program { statements: vec![] };
 
         while let Some(token) = &self.curr_token.as_mut() {
-            let statement: Result<LetStatement, ParserError> = match token {
+            let statement: Result<Box<dyn Statement>, ParserError> = match token {
                 Token::Let => {
-                    parse_let_statement(self)
-                }
+                    parse_let_statement(self).map(|stmt| Box::new(stmt) as Box<dyn Statement>)
+                },
+                Token::Return => {
+                    parse_return_statement(self).map(|stmt| Box::new(stmt) as Box<dyn Statement>)
+                },
+                // Token::If => {
+                //     parse_if_statement(self)
+                // },
                 _ => Err(ParserError::UnexpectedToken(format!("Unexpected token {}", token))),
             };
 
             match statement {
                 Ok(statement) => {
-                    program.statements.push(Box::new(statement));
+                    program.statements.push(statement);
                 }
                 Err(error) => {
                     self.errors.push(error);
@@ -61,23 +67,6 @@ impl Parser<'_> {
 
             self.advance_tokens();
         }
-
-        // for (self.curr_token != EOF_TOKEN) {
-        //     statement = null
-        //     if (currentToken() == LET_TOKEN) {
-        //       statement = parseLetStatement()
-        //     } else if (currentToken() == RETURN_TOKEN) {
-        //       statement = parseReturnStatement()
-        //     } else if (currentToken() == IF_TOKEN) {
-        //       statement = parseIfStatement()
-        //     }
-
-        //     if (statement != null) {
-        //       program.Statements.push(statement)
-        //     }
-
-        //     advanceTokens()
-        //   }
 
         program
     }
@@ -192,6 +181,21 @@ fn parse_operator_expression(parser: &mut Parser) -> Result<OperatorExpression, 
     }
 }
 
+fn parse_return_statement(parser: &mut Parser) -> Result<ReturnStatement, ParserError> {
+    let token = parser.curr_token.as_ref();
+    if token != Some(&Token::Return) {
+        return Err(ParserError::UnexpectedToken(format!("Expected 'return', got {}", token.unwrap())));
+    }
+    parser.advance_tokens();
+
+    let return_value = parse_expression(parser)?;    
+    parser.advance_tokens();
+
+    Ok(ReturnStatement {
+        token: Token::Return,
+        value: return_value,
+    })    
+}
 
 #[derive(Debug)]
 pub enum ParserError {
@@ -279,4 +283,19 @@ mod test {
         let statement: &(dyn Statement + 'static) = program.statements[0].as_ref();
         assert_eq!(statement.token_literal(), "Let");
     }
+
+
+    #[test]
+    fn test_program_return_statement() {
+        let input = "return 12; ".to_string();
+        let mut lexer = Lexer::new(input);
+        let mut parser = Parser::new(&mut lexer);
+
+        let result = parse_return_statement(&mut parser);
+        let ret_stmt = result.unwrap();
+
+        assert_eq!(ret_stmt.token, Token::Return);
+        assert_eq!(ret_stmt.value.token_literal(), "Int(12)");
+    }
+
 }
