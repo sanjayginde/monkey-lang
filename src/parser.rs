@@ -129,7 +129,7 @@ fn parse_identifier(parser: &mut Parser) -> Result<Identifier, ParserError> {
     let token = parser.curr_token.as_ref();
 
     match token {
-        Some(Token::Identifier(name)) => Ok(Identifier {
+        Some(Token::Ident(name)) => Ok(Identifier {
             token: token.unwrap().clone(),
             name: name.clone(),
         }),
@@ -239,7 +239,7 @@ mod test {
         let let_stmt = result.unwrap();
 
         assert_eq!(let_stmt.token, Token::Let);
-        assert_eq!(let_stmt.identifier.token_literal(), "Identifier(\"x\")");
+        assert_eq!(let_stmt.identifier.token_literal(), "Ident(\"x\")");
         assert_eq!(let_stmt.value.token_literal(), "Int(5)");
     }
 
@@ -253,7 +253,7 @@ mod test {
         let let_stmt = result.unwrap();
 
         assert_eq!(let_stmt.token, Token::Let);
-        assert_eq!(let_stmt.identifier.token_literal(), "Identifier(\"x\")");
+        assert_eq!(let_stmt.identifier.token_literal(), "Ident(\"x\")");
         assert_eq!(let_stmt.value.token_literal(), "Plus");
     }
 

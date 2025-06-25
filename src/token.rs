@@ -6,7 +6,7 @@ pub enum Token {
     Eof,
 
     // Identifiers + literals
-    Identifier(String),
+    Ident(String),
     Int(i64),
 
     // Operators
@@ -42,15 +42,6 @@ pub enum Token {
 
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        // write!(f, "{:?}", self)
-        // or, alternatively:
-        fmt::Debug::fmt(self, f)
+        write!(f, "{:?}", self)
     }
 }
-
-trait TokenTrait {}
-pub struct Identifier {
-    pub name: String,
-}
-
-impl TokenTrait for Identifier {}
