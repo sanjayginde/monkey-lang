@@ -1,13 +1,16 @@
 use std::error::Error;
 use std::fmt::{self, Display};
 
-use crate::ast::{Expression, Identifier, IntegerLiteral, LetStatement, OperatorExpression, Program, ReturnStatement, Statement};
+use crate::ast::{
+    Expression, Identifier, IntegerLiteral, LetStatement, OperatorExpression, Program,
+    ReturnStatement, Statement,
+};
 use crate::lexer::Lexer;
 use crate::token::Token;
 
 pub struct Parser<'a> {
     lexer: &'a mut Lexer,
-    
+
     pub curr_token: Option<Token>,
     pub peek_token: Option<Token>,
 
@@ -35,19 +38,8 @@ impl Parser<'_> {
     pub fn parse_program(&mut self) -> Program {
         let mut program = Program { statements: vec![] };
 
-        while let Some(token) = &self.curr_token.as_mut() {
-            let statement: Result<Box<dyn Statement>, ParserError> = match token {
-                Token::Let => {
-                    parse_let_statement(self).map(|stmt| Box::new(stmt) as Box<dyn Statement>)
-                },
-                Token::Return => {
-                    parse_return_statement(self).map(|stmt| Box::new(stmt) as Box<dyn Statement>)
-                },
-                // Token::If => {
-                //     parse_if_statement(self)
-                // },
-                _ => Err(ParserError::UnexpectedToken(format!("Unexpected token {}", token))),
-            };
+        while let Some(_token) = &self.curr_token.as_mut() {
+            let statement: Result<Statement, ParserError> = parse_statement(self);
 
             match statement {
                 Ok(statement) => {
@@ -72,10 +64,39 @@ impl Parser<'_> {
     }
 }
 
+#[derive(Debug, PartialEq, Clone)]
+pub enum ParserError {
+    UnexpectedToken(String),
+    Unimplemented(String),
+}
+
+impl Display for ParserError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(fmt, "{self:?}")
+    }
+}
+
+impl Error for ParserError {}
+
+fn parse_statement(parser: &mut Parser) -> Result<Statement, ParserError> {
+    let token = parser.curr_token.as_ref();
+    match token {
+        Some(Token::Let) => Ok(Statement::Let(parse_let_statement(parser)?)),
+        Some(Token::Return) => Ok(Statement::Return(parse_return_statement(parser)?)),
+        _ => Err(ParserError::UnexpectedToken(format!(
+            "Unexpected token {}",
+            token.unwrap()
+        ))),
+    }
+}
+
 fn parse_let_statement(parser: &mut Parser) -> Result<LetStatement, ParserError> {
     let token = parser.curr_token.as_ref();
     if token != Some(&Token::Let) {
-        return Err(ParserError::UnexpectedToken(format!("Expected 'let', got {}", token.unwrap())));
+        return Err(ParserError::UnexpectedToken(format!(
+            "Expected 'let', got {}",
+            token.unwrap()
+        )));
     }
 
     parser.advance_tokens();
@@ -84,21 +105,24 @@ fn parse_let_statement(parser: &mut Parser) -> Result<LetStatement, ParserError>
     parser.advance_tokens();
     let assign_token = parser.curr_token.as_ref();
     if assign_token != Some(&Token::Assign) {
-        return Err(ParserError::UnexpectedToken(format!("Expected '=' after identifier, got {}", assign_token.unwrap())));
+        return Err(ParserError::UnexpectedToken(format!(
+            "Expected '=' after identifier, got {}",
+            assign_token.unwrap()
+        )));
     }
 
     parser.advance_tokens();
-    let value: Box<dyn Expression> = parse_expression(parser)?;
+    let value: Expression = parse_expression(parser)?;
 
     let statement = LetStatement {
         token: Token::Let,
-        name: identifier,
-        value: value,
+        identifier,
+        value,
     };
 
     parser.advance_tokens();
 
-    Ok(statement)   
+    Ok(statement)
 }
 
 fn parse_identifier(parser: &mut Parser) -> Result<Identifier, ParserError> {
@@ -109,57 +133,55 @@ fn parse_identifier(parser: &mut Parser) -> Result<Identifier, ParserError> {
             token: token.unwrap().clone(),
             name: name.clone(),
         }),
-        _ => Err(ParserError::UnexpectedToken(format!("Expected identifier, got {}", token.unwrap()))),
+        _ => Err(ParserError::UnexpectedToken(format!(
+            "Expected identifier, got {}",
+            token.unwrap()
+        ))),
     }
 }
 
-fn parse_expression(parser: &mut Parser) -> Result<Box<dyn Expression>, ParserError> {
+fn parse_expression(parser: &mut Parser) -> Result<Expression, ParserError> {
     let token = parser.curr_token.as_ref();
-    
+
     match token {
-        Some(Token::Int(value)) => {
-            match parser.peek_token {
-                Some(Token::Plus) | Some(Token::Minus) | Some(Token::Asterisk) | Some(Token::Slash) => {
-                    Ok(Box::new(parse_operator_expression(parser)?))
-                },
-                Some(Token::Semicolon) => {
-                    Ok(Box::new(IntegerLiteral {
-                        token: parser.curr_token.as_ref().unwrap().clone(),
-                        value: *value,
-                    }))
-                },
-                _ => {
-                    Err(ParserError::UnexpectedToken(format!("Expected '+' or ';', got {}", parser.peek_token.as_ref().unwrap())))
-                }
+        Some(Token::Int(value)) => match parser.peek_token {
+            Some(Token::Plus) | Some(Token::Minus) | Some(Token::Asterisk) | Some(Token::Slash) => {
+                Ok(Expression::OperatorExpression(parse_operator_expression(
+                    parser,
+                )?))
             }
+            Some(Token::Semicolon) => Ok(Expression::integer(*value)),
+            _ => Err(ParserError::UnexpectedToken(format!(
+                "Expected '+' or ';', got {}",
+                parser.peek_token.as_ref().unwrap()
+            ))),
         },
-        Some(Token::LeftParen) => {
-            Err(ParserError::Unimplemented("Parsing prefix expressions not implemented, got '('".to_string()))
-        },
-        _ => {
-            Err(ParserError::UnexpectedToken(format!("Only support integer literals, got {}", parser.curr_token.as_ref().unwrap())))
-        }
+        Some(Token::LeftParen) => Err(ParserError::Unimplemented(
+            "Parsing prefix expressions not implemented, got '('".to_string(),
+        )),
+        _ => Err(ParserError::UnexpectedToken(format!(
+            "Only support integer literals, got {}",
+            parser.curr_token.as_ref().unwrap()
+        ))),
     }
 }
 
 fn parse_integer_literal(parser: &mut Parser) -> Result<IntegerLiteral, ParserError> {
     let token = parser.curr_token.as_ref();
-    
+
     match token {
-        Some(Token::Int(value)) => {
-            Ok(IntegerLiteral {
-                token: token.unwrap().clone(),
-                value: *value,
-            })
-        },
-        _ => {
-            Err(ParserError::UnexpectedToken(format!("Expected integer literal, got {}", token.unwrap())))
-        }
+        Some(Token::Int(value)) => Ok(IntegerLiteral {
+            token: token.unwrap().clone(),
+            value: *value,
+        }),
+        _ => Err(ParserError::UnexpectedToken(format!(
+            "Expected integer literal, got {}",
+            token.unwrap()
+        ))),
     }
 }
 
 fn parse_operator_expression(parser: &mut Parser) -> Result<OperatorExpression, ParserError> {
-
     let left = parse_integer_literal(parser)?;
     parser.advance_tokens();
 
@@ -174,48 +196,36 @@ fn parse_operator_expression(parser: &mut Parser) -> Result<OperatorExpression, 
                 operator: operator,
                 right: parse_integer_literal(parser)?,
             })
-        },
-        _ => {
-            Err(ParserError::UnexpectedToken(format!("Expected operator, got {}", operator.unwrap())))
         }
+        _ => Err(ParserError::UnexpectedToken(format!(
+            "Expected operator, got {}",
+            operator.unwrap()
+        ))),
     }
 }
 
 fn parse_return_statement(parser: &mut Parser) -> Result<ReturnStatement, ParserError> {
     let token = parser.curr_token.as_ref();
     if token != Some(&Token::Return) {
-        return Err(ParserError::UnexpectedToken(format!("Expected 'return', got {}", token.unwrap())));
+        return Err(ParserError::UnexpectedToken(format!(
+            "Expected 'return', got {}",
+            token.unwrap()
+        )));
     }
     parser.advance_tokens();
 
-    let return_value = parse_expression(parser)?;    
+    let value = parse_expression(parser)?;
     parser.advance_tokens();
 
     Ok(ReturnStatement {
         token: Token::Return,
-        value: return_value,
-    })    
+        value,
+    })
 }
-
-#[derive(Debug)]
-pub enum ParserError {
-    UnexpectedToken(String),
-    Unimplemented(String),
-}
-
-
-impl Display for ParserError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Credit card error: Could not retrieve credit card.")
-    }
-}
-
-impl Error for ParserError {}
-
 
 #[cfg(test)]
 mod test {
-    use crate::{ast::{Node, Statement}, lexer::Lexer};
+    use crate::{ast::Node, lexer::Lexer};
 
     use super::*;
 
@@ -229,7 +239,7 @@ mod test {
         let let_stmt = result.unwrap();
 
         assert_eq!(let_stmt.token, Token::Let);
-        assert_eq!(let_stmt.name.token_literal(), "Identifier(\"x\")");
+        assert_eq!(let_stmt.identifier.token_literal(), "Identifier(\"x\")");
         assert_eq!(let_stmt.value.token_literal(), "Int(5)");
     }
 
@@ -243,7 +253,7 @@ mod test {
         let let_stmt = result.unwrap();
 
         assert_eq!(let_stmt.token, Token::Let);
-        assert_eq!(let_stmt.name.token_literal(), "Identifier(\"x\")");
+        assert_eq!(let_stmt.identifier.token_literal(), "Identifier(\"x\")");
         assert_eq!(let_stmt.value.token_literal(), "Plus");
     }
 
@@ -266,8 +276,12 @@ mod test {
         let program = parser.parse_program();
         assert_eq!(program.statements.len(), 3);
         assert_eq!(parser.errors.len(), 0);
-        let statement: &(dyn Statement + 'static) = program.statements[0].as_ref();
-        assert_eq!(statement.token_literal(), "Let");
+
+        let let_stmt = program.statements[0].as_let().unwrap();
+
+        assert_eq!(let_stmt.token_literal(), "Let");
+        assert_eq!(let_stmt.identifier.name, "x");
+        assert_eq!(let_stmt.value.token_literal(), "Int(5)");
     }
 
     #[test]
@@ -279,11 +293,23 @@ mod test {
         let program = parser.parse_program();
         assert_eq!(program.statements.len(), 1);
         assert_eq!(parser.errors.len(), 2);
-        
-        let statement: &(dyn Statement + 'static) = program.statements[0].as_ref();
-        assert_eq!(statement.token_literal(), "Let");
-    }
 
+        let let_stmt = program.statements[0].as_let().unwrap();
+        assert_eq!(let_stmt.token_literal(), "Let");
+        assert_eq!(let_stmt.identifier.name, "ten");
+        assert_eq!(let_stmt.value.token_literal(), "Int(10)");
+
+        assert_eq!(
+            parser.errors[0],
+            ParserError::UnexpectedToken("Expected identifier, got Assign".to_string())
+        );
+        assert_eq!(
+            parser.errors[1],
+            ParserError::UnexpectedToken(
+                "Only support integer literals, got Semicolon".to_string()
+            )
+        );
+    }
 
     #[test]
     fn test_program_return_statement() {
@@ -297,5 +323,4 @@ mod test {
         assert_eq!(ret_stmt.token, Token::Return);
         assert_eq!(ret_stmt.value.token_literal(), "Int(12)");
     }
-
 }

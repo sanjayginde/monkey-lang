@@ -1,0 +1,80 @@
+use crate::{
+    ast::{Expression, Identifier, Node},
+    token::Token,
+};
+
+#[derive(Debug)]
+pub enum Statement {
+    Let(LetStatement),
+    Return(ReturnStatement),
+    // Expression(ExpressionStatement),
+}
+
+impl Node for Statement {
+    fn token_literal(&self) -> String {
+        match self {
+            Statement::Let(stmt) => stmt.token_literal(),
+            Statement::Return(stmt) => stmt.token_literal(),
+        }
+    }
+}
+
+// Helper methods for constructing statements
+impl Statement {
+    pub fn let_statement(token: Token, name: Identifier, value: Expression) -> Self {
+        Statement::Let(LetStatement {
+            token,
+            identifier: name,
+            value,
+        })
+    }
+
+    pub fn return_statement(value: Expression) -> Self {
+        Statement::Return(ReturnStatement {
+            token: Token::Return,
+            value,
+        })
+    }
+}
+
+// Pattern matching helpers
+impl Statement {
+    pub fn as_let(&self) -> Option<&LetStatement> {
+        match self {
+            Statement::Let(stmt) => Some(stmt),
+            _ => None,
+        }
+    }
+
+    pub fn as_return(&self) -> Option<&ReturnStatement> {
+        match self {
+            Statement::Return(stmt) => Some(stmt),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct LetStatement {
+    pub token: Token,
+    pub identifier: Identifier,
+    pub value: Expression,
+}
+
+impl Node for LetStatement {
+    fn token_literal(&self) -> String {
+        self.token.to_string()
+    }
+}
+
+#[derive(Debug)]
+pub struct ReturnStatement {
+    pub token: Token,
+    pub value: Expression,
+}
+
+impl Node for ReturnStatement {
+    fn token_literal(&self) -> String {
+        self.token.to_string()
+    }
+}
