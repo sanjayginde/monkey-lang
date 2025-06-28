@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::{
     ast::{IntegerLiteral, Node},
     token::Token,
@@ -19,6 +21,15 @@ impl Node for Expression {
     }
 }
 
+impl Display for Expression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Expression::IntegerLiteral(expr) => expr.fmt(f),
+            Expression::OperatorExpression(expr) => expr.fmt(f),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct OperatorExpression {
     pub left: IntegerLiteral,
@@ -29,6 +40,18 @@ pub struct OperatorExpression {
 impl Node for OperatorExpression {
     fn token_literal(&self) -> String {
         self.operator.to_string()
+    }
+}
+
+impl Display for OperatorExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "({} {} {})",
+            self.left.to_string(),
+            self.operator.to_string(),
+            self.right.to_string()
+        )
     }
 }
 

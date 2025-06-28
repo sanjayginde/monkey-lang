@@ -2,6 +2,8 @@ mod expression;
 mod program;
 mod statement;
 
+use std::fmt::Display;
+
 pub use expression::{Expression, OperatorExpression};
 
 pub use statement::{LetStatement, ReturnStatement, Statement};
@@ -26,6 +28,12 @@ impl Node for Identifier {
     }
 }
 
+impl Display for Identifier {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name)
+    }
+}
+
 #[derive(Debug)]
 pub struct IntegerLiteral {
     pub token: Token,
@@ -35,5 +43,11 @@ pub struct IntegerLiteral {
 impl Node for IntegerLiteral {
     fn token_literal(&self) -> String {
         self.token.to_string()
+    }
+}
+
+impl Display for IntegerLiteral {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.value)
     }
 }

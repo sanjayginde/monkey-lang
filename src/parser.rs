@@ -238,9 +238,9 @@ mod test {
         let result = parse_let_statement(&mut parser);
         let let_stmt = result.unwrap();
 
-        assert_eq!(let_stmt.token, Token::Let);
-        assert_eq!(let_stmt.identifier.token_literal(), "Ident(\"x\")");
-        assert_eq!(let_stmt.value.token_literal(), "Int(5)");
+        assert_eq!(let_stmt.token_literal(), "let");
+        assert_eq!(let_stmt.identifier.token_literal(), "x");
+        assert_eq!(let_stmt.value.token_literal(), "5");
     }
 
     #[test]
@@ -252,9 +252,9 @@ mod test {
         let result = parse_let_statement(&mut parser);
         let let_stmt = result.unwrap();
 
-        assert_eq!(let_stmt.token, Token::Let);
-        assert_eq!(let_stmt.identifier.token_literal(), "Ident(\"x\")");
-        assert_eq!(let_stmt.value.token_literal(), "Plus");
+        assert_eq!(let_stmt.token_literal(), "let");
+        assert_eq!(let_stmt.identifier.token_literal(), "x");
+        assert_eq!(let_stmt.value.token_literal(), "+");
     }
 
     #[test]
@@ -279,9 +279,9 @@ mod test {
 
         let let_stmt = program.statements[0].as_let().unwrap();
 
-        assert_eq!(let_stmt.token_literal(), "Let");
+        assert_eq!(let_stmt.token_literal(), "let");
         assert_eq!(let_stmt.identifier.name, "x");
-        assert_eq!(let_stmt.value.token_literal(), "Int(5)");
+        assert_eq!(let_stmt.value.token_literal(), "5");
     }
 
     #[test]
@@ -295,19 +295,17 @@ mod test {
         assert_eq!(parser.errors.len(), 2);
 
         let let_stmt = program.statements[0].as_let().unwrap();
-        assert_eq!(let_stmt.token_literal(), "Let");
+        assert_eq!(let_stmt.token_literal(), "let");
         assert_eq!(let_stmt.identifier.name, "ten");
-        assert_eq!(let_stmt.value.token_literal(), "Int(10)");
+        assert_eq!(let_stmt.value.token_literal(), "10");
 
         assert_eq!(
             parser.errors[0],
-            ParserError::UnexpectedToken("Expected identifier, got Assign".to_string())
+            ParserError::UnexpectedToken("Expected identifier, got =".to_string())
         );
         assert_eq!(
             parser.errors[1],
-            ParserError::UnexpectedToken(
-                "Only support integer literals, got Semicolon".to_string()
-            )
+            ParserError::UnexpectedToken("Only support integer literals, got ;".to_string())
         );
     }
 
@@ -320,7 +318,7 @@ mod test {
         let result = parse_return_statement(&mut parser);
         let ret_stmt = result.unwrap();
 
-        assert_eq!(ret_stmt.token, Token::Return);
-        assert_eq!(ret_stmt.value.token_literal(), "Int(12)");
+        assert_eq!(ret_stmt.token_literal(), "return");
+        assert_eq!(ret_stmt.value.token_literal(), "12");
     }
 }

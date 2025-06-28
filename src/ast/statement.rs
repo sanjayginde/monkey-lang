@@ -2,12 +2,13 @@ use crate::{
     ast::{Expression, Identifier, Node},
     token::Token,
 };
+use std::fmt::Display;
 
 #[derive(Debug)]
 pub enum Statement {
     Let(LetStatement),
     Return(ReturnStatement),
-    // Expression(ExpressionStatement),
+    Expression(ExpressionStatement),
 }
 
 impl Node for Statement {
@@ -15,6 +16,17 @@ impl Node for Statement {
         match self {
             Statement::Let(stmt) => stmt.token_literal(),
             Statement::Return(stmt) => stmt.token_literal(),
+            Statement::Expression(stmt) => stmt.token_literal(),
+        }
+    }
+}
+
+impl Display for Statement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Statement::Let(stmt) => stmt.fmt(f),
+            Statement::Return(stmt) => stmt.fmt(f),
+            Statement::Expression(stmt) => stmt.fmt(f),
         }
     }
 }
@@ -34,6 +46,10 @@ impl Statement {
             token: Token::Return,
             value,
         })
+    }
+
+    pub fn expression_statement(token: Token, value: Expression) -> Self {
+        Statement::Expression(ExpressionStatement { token, value })
     }
 }
 
@@ -67,6 +83,12 @@ impl Node for LetStatement {
     }
 }
 
+impl Display for LetStatement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {} = {};", self.token, self.identifier, self.value)
+    }
+}
+
 #[derive(Debug)]
 pub struct ReturnStatement {
     pub token: Token,
@@ -76,5 +98,29 @@ pub struct ReturnStatement {
 impl Node for ReturnStatement {
     fn token_literal(&self) -> String {
         self.token.to_string()
+    }
+}
+
+impl Display for ReturnStatement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {}", self.token, self.value)
+    }
+}
+
+#[derive(Debug)]
+pub struct ExpressionStatement {
+    pub token: Token,
+    pub value: Expression,
+}
+
+impl Node for ExpressionStatement {
+    fn token_literal(&self) -> String {
+        self.token.to_string()
+    }
+}
+
+impl Display for ExpressionStatement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.value)
     }
 }
