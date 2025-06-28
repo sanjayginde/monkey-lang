@@ -4,9 +4,9 @@ mod statement;
 
 use std::fmt::Display;
 
-pub use expression::{Expression, OperatorExpression};
+pub use expression::{Expression, InfixExpression};
 
-pub use statement::{LetStatement, ReturnStatement, Statement};
+pub use statement::{ExpressionStatement, LetStatement, ReturnStatement, Statement};
 
 pub use program::Program;
 
@@ -47,6 +47,24 @@ impl Node for IntegerLiteral {
 }
 
 impl Display for IntegerLiteral {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.value)
+    }
+}
+
+#[derive(Debug)]
+pub struct BooleanLiteral {
+    pub token: Token,
+    pub value: bool,
+}
+
+impl Node for BooleanLiteral {
+    fn token_literal(&self) -> String {
+        self.token.to_string()
+    }
+}
+
+impl Display for BooleanLiteral {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.value)
     }

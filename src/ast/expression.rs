@@ -1,22 +1,25 @@
 use std::fmt::Display;
 
 use crate::{
-    ast::{IntegerLiteral, Node},
+    ast::{BooleanLiteral, Identifier, IntegerLiteral, Node},
     token::Token,
 };
 
 #[derive(Debug)]
 pub enum Expression {
-    // Identifier(Identifier),
-    IntegerLiteral(IntegerLiteral),
-    OperatorExpression(OperatorExpression),
+    Identifier(Identifier),
+    Integer(IntegerLiteral),
+    Boolean(BooleanLiteral),
+    Infix(InfixExpression),
 }
 
 impl Node for Expression {
     fn token_literal(&self) -> String {
         match self {
-            Expression::IntegerLiteral(expr) => expr.token_literal(),
-            Expression::OperatorExpression(expr) => expr.token_literal(),
+            Expression::Identifier(expr) => expr.token_literal(),
+            Expression::Integer(expr) => expr.token_literal(),
+            Expression::Boolean(expr) => expr.token_literal(),
+            Expression::Infix(expr) => expr.token_literal(),
         }
     }
 }
@@ -24,51 +27,47 @@ impl Node for Expression {
 impl Display for Expression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Expression::IntegerLiteral(expr) => expr.fmt(f),
-            Expression::OperatorExpression(expr) => expr.fmt(f),
+            Expression::Identifier(expr) => expr.fmt(f),
+            Expression::Integer(expr) => expr.fmt(f),
+            Expression::Boolean(expr) => expr.fmt(f),
+            Expression::Infix(expr) => expr.fmt(f),
         }
     }
 }
 
 #[derive(Debug)]
-pub struct OperatorExpression {
-    pub left: IntegerLiteral,
+pub struct InfixExpression {
+    pub left: Box<Expression>,
     pub operator: Token,
-    pub right: IntegerLiteral,
+    pub right: Box<Expression>,
 }
 
-impl Node for OperatorExpression {
+impl Node for InfixExpression {
     fn token_literal(&self) -> String {
         self.operator.to_string()
     }
 }
 
-impl Display for OperatorExpression {
+impl Display for InfixExpression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "({} {} {})",
-            self.left.to_string(),
-            self.operator.to_string(),
-            self.right.to_string()
-        )
+        write!(f, "({} {} {})", self.left, self.operator, self.right)
     }
 }
 
 // Helper methods for constructing expressions
 impl Expression {
     pub fn integer(value: i64) -> Self {
-        Expression::IntegerLiteral(IntegerLiteral {
+        Expression::Integer(IntegerLiteral {
             token: Token::Int(value),
             value,
         })
     }
 
-    pub fn operator(left: IntegerLiteral, operator: Token, right: IntegerLiteral) -> Self {
-        Expression::OperatorExpression(OperatorExpression {
-            left: left,
+    pub fn operator(left: Expression, operator: Token, right: Expression) -> Self {
+        Expression::Infix(InfixExpression {
+            left: Box::new(left),
             operator,
-            right: right,
+            right: Box::new(right),
         })
     }
 }

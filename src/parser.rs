@@ -1,12 +1,51 @@
 use std::error::Error;
 use std::fmt::{self, Display};
 
-use crate::ast::{
-    Expression, Identifier, IntegerLiteral, LetStatement, OperatorExpression, Program,
-    ReturnStatement, Statement,
-};
-use crate::lexer::Lexer;
 use crate::token::Token;
+use crate::{
+    ast::{
+        Expression, ExpressionStatement, Identifier, InfixExpression, IntegerLiteral, LetStatement,
+        Program, ReturnStatement, Statement,
+    },
+    lexer::Lexer,
+};
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum Precedence {
+    Lowest,
+    Equals,
+    LessGreater,
+    Sum,
+    Product,
+    Prefix,
+    Call,
+}
+
+impl Precedence {
+    fn enum_index(&self) -> u8 {
+        match *self {
+            Precedence::Lowest => 0,
+            Precedence::Equals => 1,
+            Precedence::LessGreater => 2,
+            Precedence::Sum => 3,
+            Precedence::Product => 4,
+            Precedence::Prefix => 5,
+            Precedence::Call => 6,
+        }
+    }
+}
+
+impl Ord for Precedence {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.enum_index().cmp(&other.enum_index())
+    }
+}
+
+impl PartialOrd for Precedence {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(&other))
+    }
+}
 
 pub struct Parser<'a> {
     lexer: &'a mut Lexer,
@@ -83,10 +122,10 @@ fn parse_statement(parser: &mut Parser) -> Result<Statement, ParserError> {
     match token {
         Some(Token::Let) => Ok(Statement::Let(parse_let_statement(parser)?)),
         Some(Token::Return) => Ok(Statement::Return(parse_return_statement(parser)?)),
-        _ => Err(ParserError::UnexpectedToken(format!(
-            "Unexpected token {}",
-            token.unwrap()
-        ))),
+        Some(_) => Ok(Statement::Expression(parse_expression_statement(parser)?)),
+        None => Err(ParserError::UnexpectedToken(
+            "Unexpected end of input".to_string(),
+        )),
     }
 }
 
@@ -146,9 +185,7 @@ fn parse_expression(parser: &mut Parser) -> Result<Expression, ParserError> {
     match token {
         Some(Token::Int(value)) => match parser.peek_token {
             Some(Token::Plus) | Some(Token::Minus) | Some(Token::Asterisk) | Some(Token::Slash) => {
-                Ok(Expression::OperatorExpression(parse_operator_expression(
-                    parser,
-                )?))
+                Ok(Expression::Infix(parse_infix_expression(parser)?))
             }
             Some(Token::Semicolon) => Ok(Expression::integer(*value)),
             _ => Err(ParserError::UnexpectedToken(format!(
@@ -156,6 +193,10 @@ fn parse_expression(parser: &mut Parser) -> Result<Expression, ParserError> {
                 parser.peek_token.as_ref().unwrap()
             ))),
         },
+        Some(Token::Ident(name)) => Ok(Expression::Identifier(Identifier {
+            token: token.unwrap().clone(),
+            name: name.clone(),
+        })),
         Some(Token::LeftParen) => Err(ParserError::Unimplemented(
             "Parsing prefix expressions not implemented, got '('".to_string(),
         )),
@@ -181,8 +222,8 @@ fn parse_integer_literal(parser: &mut Parser) -> Result<IntegerLiteral, ParserEr
     }
 }
 
-fn parse_operator_expression(parser: &mut Parser) -> Result<OperatorExpression, ParserError> {
-    let left = parse_integer_literal(parser)?;
+fn parse_infix_expression(parser: &mut Parser) -> Result<InfixExpression, ParserError> {
+    let left = Expression::Integer(parse_integer_literal(parser)?);
     parser.advance_tokens();
 
     let operator = parser.curr_token.as_ref();
@@ -191,10 +232,10 @@ fn parse_operator_expression(parser: &mut Parser) -> Result<OperatorExpression, 
         Some(Token::Plus) | Some(Token::Minus) | Some(Token::Asterisk) | Some(Token::Slash) => {
             let operator = parser.curr_token.as_ref().unwrap().clone();
             parser.advance_tokens();
-            Ok(OperatorExpression {
-                left: left,
-                operator: operator,
-                right: parse_integer_literal(parser)?,
+            Ok(InfixExpression {
+                left: Box::new(left),
+                operator,
+                right: Box::new(Expression::Integer(parse_integer_literal(parser)?)),
             })
         }
         _ => Err(ParserError::UnexpectedToken(format!(
@@ -223,6 +264,16 @@ fn parse_return_statement(parser: &mut Parser) -> Result<ReturnStatement, Parser
     })
 }
 
+fn parse_expression_statement(parser: &mut Parser) -> Result<ExpressionStatement, ParserError> {
+    let expression = parse_expression(parser)?;
+    parser.advance_tokens();
+
+    Ok(ExpressionStatement {
+        token: Token::LeftParen,
+        expression,
+    })
+}
+
 #[cfg(test)]
 mod test {
     use crate::{ast::Node, lexer::Lexer};
@@ -244,7 +295,7 @@ mod test {
     }
 
     #[test]
-    fn test_parse_let_with_operator_statement() {
+    fn test_parse_let_statement_with_infix_expression() {
         let input = "let x = 5 + 5;".to_string();
         let mut lexer = Lexer::new(input);
         let mut parser = Parser::new(&mut lexer);
@@ -320,5 +371,29 @@ mod test {
 
         assert_eq!(ret_stmt.token_literal(), "return");
         assert_eq!(ret_stmt.value.token_literal(), "12");
+    }
+
+    #[test]
+    fn test_infix_expression_statement() {
+        let input = "15 + 10; ".to_string();
+        let mut lexer = Lexer::new(input);
+        let mut parser = Parser::new(&mut lexer);
+
+        let result = parse_expression_statement(&mut parser);
+        let exp_stmt = result.unwrap();
+
+        assert_eq!(exp_stmt.to_string(), "(15 + 10)");
+    }
+
+    #[test]
+    fn test_identifier_expression_statement() {
+        let input = "foobar; ".to_string();
+        let mut lexer = Lexer::new(input);
+        let mut parser = Parser::new(&mut lexer);
+
+        let result = parse_expression_statement(&mut parser);
+        let exp_stmt = result.unwrap();
+
+        assert_eq!(exp_stmt.to_string(), "foobar");
     }
 }

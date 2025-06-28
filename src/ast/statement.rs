@@ -49,7 +49,10 @@ impl Statement {
     }
 
     pub fn expression_statement(token: Token, value: Expression) -> Self {
-        Statement::Expression(ExpressionStatement { token, value })
+        Statement::Expression(ExpressionStatement {
+            token,
+            expression: value,
+        })
     }
 }
 
@@ -65,6 +68,13 @@ impl Statement {
     pub fn as_return(&self) -> Option<&ReturnStatement> {
         match self {
             Statement::Return(stmt) => Some(stmt),
+            _ => None,
+        }
+    }
+
+    pub fn as_expression(&self) -> Option<&ExpressionStatement> {
+        match self {
+            Statement::Expression(stmt) => Some(stmt),
             _ => None,
         }
     }
@@ -110,7 +120,7 @@ impl Display for ReturnStatement {
 #[derive(Debug)]
 pub struct ExpressionStatement {
     pub token: Token,
-    pub value: Expression,
+    pub expression: Expression,
 }
 
 impl Node for ExpressionStatement {
@@ -121,6 +131,6 @@ impl Node for ExpressionStatement {
 
 impl Display for ExpressionStatement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.value)
+        write!(f, "{}", self.expression)
     }
 }
