@@ -407,29 +407,47 @@ mod test {
     }
 
     #[test]
-    fn test_identifier_expression_statement() {
-        let input = "12; ".to_string();
+    fn test_integer_expression_statement() {
+        let input = "12;".to_string();
         let mut lexer = Lexer::new(input);
         let mut parser = Parser::new(&mut lexer);
 
-        let result = parse_expression_statement(&mut parser);
-        let int_stmt = result.unwrap();
+        let stmt = parse_expression_statement(&mut parser).unwrap();
+        let integer = stmt.expression.as_integer().unwrap();
 
-        assert_eq!(int_stmt.to_string(), "12");
+        assert_eq!(integer.value, 12);
+    }
+
+    #[test]
+    fn test_identifier_expression_statement() {
+        let input = "foobar;".to_string();
+        let mut lexer = Lexer::new(input);
+        let mut parser = Parser::new(&mut lexer);
+
+        let stmt = parse_expression_statement(&mut parser).unwrap();
+        let identifier = stmt.expression.as_identifier().unwrap();
+
+        assert_eq!(identifier.name, "foobar");
     }
 
     #[test]
     fn test_prefix_expressions() {
-        let tests = [("!12;", "(!12)"), ("-4;", "(-4)")];
+        let tests = [
+            ("!12;", Token::Bang, 12, "(!12)"),
+            ("-4;", Token::Minus, 4, "(-4)"),
+        ];
 
         for test in tests {
             let mut lexer = Lexer::new(test.0.to_string());
             let mut parser = Parser::new(&mut lexer);
 
-            let result = parse_expression_statement(&mut parser);
-            let int_stmt = result.unwrap();
+            let stmt = parse_expression_statement(&mut parser).unwrap();
+            let prefix_exp = stmt.expression.as_prefix().unwrap();
+            let right = prefix_exp.right.as_integer().unwrap();
 
-            assert_eq!(int_stmt.to_string(), test.1);
+            assert_eq!(prefix_exp.operator, test.1);
+            assert_eq!(right.value, test.2);
+            assert_eq!(prefix_exp.to_string(), test.3);
         }
     }
 }

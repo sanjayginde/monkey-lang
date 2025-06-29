@@ -92,3 +92,40 @@ impl Expression {
         })
     }
 }
+
+impl Expression {
+    pub fn as_identifier(&self) -> Option<&Identifier> {
+        match self {
+            Expression::Identifier(exp) => Some(exp),
+            _ => None,
+        }
+    }
+
+    pub fn as_integer(&self) -> Option<&IntegerLiteral> {
+        match self {
+            Expression::Integer(stmt) => Some(stmt),
+            _ => None,
+        }
+    }
+
+    pub fn as_boolean(&self) -> Option<&BooleanLiteral> {
+        match self {
+            Expression::Boolean(stmt) => Some(stmt),
+            _ => None,
+        }
+    }
+
+    pub fn as_prefix(&self) -> Option<&PrefixExpression> {
+        match self {
+            Expression::Prefix(stmt) => Some(stmt),
+            _ => None,
+        }
+    }
+
+    pub fn as_infix(&self) -> Option<&InfixExpression> {
+        match self {
+            Expression::Infix(stmt) => Some(stmt),
+            _ => None,
+        }
+    }
+}
