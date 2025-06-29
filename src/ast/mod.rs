@@ -4,7 +4,7 @@ mod statement;
 
 use std::fmt::Display;
 
-pub use expression::{Expression, InfixExpression};
+pub use expression::{Expression, InfixExpression, PrefixExpression};
 
 pub use statement::{ExpressionStatement, LetStatement, ReturnStatement, Statement};
 

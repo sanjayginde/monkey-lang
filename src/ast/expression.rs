@@ -10,6 +10,7 @@ pub enum Expression {
     Identifier(Identifier),
     Integer(IntegerLiteral),
     Boolean(BooleanLiteral),
+    Prefix(PrefixExpression),
     Infix(InfixExpression),
 }
 
@@ -19,6 +20,7 @@ impl Node for Expression {
             Expression::Identifier(expr) => expr.token_literal(),
             Expression::Integer(expr) => expr.token_literal(),
             Expression::Boolean(expr) => expr.token_literal(),
+            Expression::Prefix(expr) => expr.token_literal(),
             Expression::Infix(expr) => expr.token_literal(),
         }
     }
@@ -30,8 +32,27 @@ impl Display for Expression {
             Expression::Identifier(expr) => expr.fmt(f),
             Expression::Integer(expr) => expr.fmt(f),
             Expression::Boolean(expr) => expr.fmt(f),
+            Expression::Prefix(expr) => expr.fmt(f),
             Expression::Infix(expr) => expr.fmt(f),
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct PrefixExpression {
+    pub operator: Token,
+    pub right: Box<Expression>,
+}
+
+impl Node for PrefixExpression {
+    fn token_literal(&self) -> String {
+        self.operator.to_string()
+    }
+}
+
+impl Display for PrefixExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({}{})", self.operator, self.right)
     }
 }
 
