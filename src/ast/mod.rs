@@ -16,7 +16,7 @@ pub trait Node {
     fn token_literal(&self) -> String;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Identifier {
     pub token: Token,
     pub name: String,
@@ -34,7 +34,7 @@ impl Display for Identifier {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct IntegerLiteral {
     pub token: Token,
     pub value: i64,
@@ -52,7 +52,7 @@ impl Display for IntegerLiteral {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BooleanLiteral {
     pub token: Token,
     pub value: bool,

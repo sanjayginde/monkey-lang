@@ -5,7 +5,7 @@ use crate::{
     token::Token,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Expression {
     Identifier(Identifier),
     Integer(IntegerLiteral),
@@ -38,10 +38,10 @@ impl Display for Expression {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PrefixExpression {
     pub operator: Token,
-    pub right: Box<Expression>,
+    pub expression: Box<Expression>,
 }
 
 impl Node for PrefixExpression {
@@ -52,11 +52,11 @@ impl Node for PrefixExpression {
 
 impl Display for PrefixExpression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "({}{})", self.operator, self.right)
+        write!(f, "({}{})", self.operator, self.expression)
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct InfixExpression {
     pub left: Box<Expression>,
     pub operator: Token,
