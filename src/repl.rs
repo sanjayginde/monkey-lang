@@ -13,7 +13,7 @@ pub fn start_repl() {
             Ok(_n) => {
                 let lexer = Lexer::new(input.clone());
                 for token in lexer {
-                    println!("{:?}", token);
+                    println!("{token:?}");
                 }
             }
             Err(error) => {
