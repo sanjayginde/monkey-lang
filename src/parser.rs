@@ -1,15 +1,9 @@
 use std::error::Error;
 use std::fmt::{self, Display};
 
-use crate::ast::PrefixExpression;
+use crate::ast::prelude::*;
+use crate::lexer::Lexer;
 use crate::token::{Precedence, Token};
-use crate::{
-    ast::{
-        Expression, ExpressionStatement, Identifier, InfixExpression, IntegerLiteral, LetStatement,
-        Program, ReturnStatement, Statement,
-    },
-    lexer::Lexer,
-};
 
 pub struct Parser<'a> {
     lexer: &'a mut Lexer,
@@ -212,6 +206,25 @@ fn parse_integer_literal(parser: &mut Parser) -> Result<IntegerLiteral, ParserEr
     }
 }
 
+fn parse_boolean(parser: &mut Parser) -> Result<BooleanLiteral, ParserError> {
+    let token = parser.curr_token.as_ref();
+
+    match token {
+        Some(Token::True) => Ok(BooleanLiteral {
+            token: Token::True,
+            value: true,
+        }),
+        Some(Token::False) => Ok(BooleanLiteral {
+            token: Token::False,
+            value: false,
+        }),
+        _ => Err(ParserError::UnexpectedToken(format!(
+            "Expected boolean literal, got {}",
+            token.unwrap_or(&Token::Eof)
+        ))),
+    }
+}
+
 fn parse_prefix_expression(parser: &mut Parser) -> Result<Option<Expression>, ParserError> {
     let token = parser.curr_token.as_ref();
 
@@ -228,8 +241,8 @@ fn parse_prefix_expression(parser: &mut Parser) -> Result<Option<Expression>, Pa
                 expression: Box::new(expression),
             })))
         }
-        // Some(Token::True) => Ok(parse_boolean(parser)),
-        // Some(Token::False) => Ok(parse_boolean(parser)),
+        Some(Token::True) => Ok(Some(Expression::Boolean(parse_boolean(parser)?))),
+        Some(Token::False) => Ok(Some(Expression::Boolean(parse_boolean(parser)?))),
         Some(_) => Ok(None),
         None => Err(ParserError::UnexpectedToken(format!(
             "Expected prefix expression token, got {}",
@@ -269,7 +282,8 @@ fn parse_infix_expression(
 
 #[cfg(test)]
 mod test {
-    use crate::{ast::Node, lexer::Lexer};
+    use crate::ast::prelude::*;
+    use crate::lexer::Lexer;
 
     use super::*;
 
@@ -330,7 +344,7 @@ mod test {
 
     #[test]
     fn test_program_with_errors() {
-        let input = "let  = 5; let five = ; let ten = 10;".to_string();
+        let input = "let  = 5; let five = ; let ten = true;".to_string();
         let mut lexer = Lexer::new(input);
         let mut parser = Parser::new(&mut lexer);
 
@@ -341,7 +355,7 @@ mod test {
         let let_stmt = program.statements[0].as_let().unwrap();
         assert_eq!(let_stmt.token_literal(), "let");
         assert_eq!(let_stmt.identifier.name, "ten");
-        assert_eq!(let_stmt.value.token_literal(), "10");
+        assert_eq!(let_stmt.value.token_literal(), "true");
 
         assert_eq!(
             parser.errors[0],
@@ -371,14 +385,35 @@ mod test {
     #[test]
     fn test_infix_expression_statement() {
         let tests = [
-            ("5 + 5;", 5, Token::Plus, 5, "(5 + 5)"),
-            ("5-5;", 5, Token::Minus, 5, "(5 - 5)"),
-            ("5*5;", 5, Token::Asterisk, 5, "(5 * 5)"),
-            ("5 / 5;", 5, Token::Slash, 5, "(5 / 5)"),
-            ("5 < 5;", 5, Token::LessThan, 5, "(5 < 5)"),
-            ("5 > 5;", 5, Token::GreaterThan, 5, "(5 > 5)"),
-            ("5 == 5;", 5, Token::Equal, 5, "(5 == 5)"),
-            ("5 != 5;", 5, Token::NotEqual, 5, "(5 != 5)"),
+            ("5 + 5;", "5", Token::Plus, "5", "(5 + 5)"),
+            ("5-5;", "5", Token::Minus, "5", "(5 - 5)"),
+            ("5*5;", "5", Token::Asterisk, "5", "(5 * 5)"),
+            ("5 / 5;", "5", Token::Slash, "5", "(5 / 5)"),
+            ("5 < 5;", "5", Token::LessThan, "5", "(5 < 5)"),
+            ("5 > 5;", "5", Token::GreaterThan, "5", "(5 > 5)"),
+            ("5 == 5;", "5", Token::Equal, "5", "(5 == 5)"),
+            ("5 != 5;", "5", Token::NotEqual, "5", "(5 != 5)"),
+            (
+                "true == true;",
+                "true",
+                Token::Equal,
+                "true",
+                "(true == true)",
+            ),
+            (
+                "false != true;",
+                "false",
+                Token::NotEqual,
+                "true",
+                "(false != true)",
+            ),
+            (
+                "false == false;",
+                "false",
+                Token::Equal,
+                "false",
+                "(false == false)",
+            ),
         ];
 
         for test in tests {
@@ -388,9 +423,9 @@ mod test {
             let stmt = parse_expression_statement(&mut parser).unwrap();
             let infix_exp = stmt.expression.as_infix().unwrap();
 
-            assert_eq!(infix_exp.left.as_integer().unwrap().value, test.1);
+            assert_eq!(infix_exp.left.to_string(), test.1);
             assert_eq!(infix_exp.operator, test.2);
-            assert_eq!(infix_exp.right.as_integer().unwrap().value, test.3);
+            assert_eq!(infix_exp.right.to_string(), test.3);
             assert_eq!(infix_exp.to_string(), test.4);
         }
     }
@@ -405,6 +440,18 @@ mod test {
         let integer = stmt.expression.as_integer().unwrap();
 
         assert_eq!(integer.value, 12);
+    }
+
+    #[test]
+    fn test_boolean_expression_statement() {
+        let input = "false;".to_string();
+        let mut lexer = Lexer::new(input);
+        let mut parser = Parser::new(&mut lexer);
+
+        let stmt = parse_expression_statement(&mut parser).unwrap();
+        let boolean = stmt.expression.as_boolean().unwrap();
+
+        assert_eq!(boolean.value, false);
     }
 
     #[test]
@@ -464,6 +511,8 @@ mod test {
                 "3 + 4 * 5 == 3 * 1 + 4 * 5",
                 "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))",
             ),
+            ("3 > 5 == false", "((3 > 5) == false)"),
+            ("3 < 5 == true", "((3 < 5) == true)"),
         ];
         for test in tests {
             Lexer::new(format!("{};", test.0));

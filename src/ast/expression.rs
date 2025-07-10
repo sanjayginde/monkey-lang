@@ -1,9 +1,6 @@
 use std::fmt::Display;
 
-use crate::{
-    ast::{BooleanLiteral, Identifier, IntegerLiteral, Node},
-    token::Token,
-};
+use crate::{ast::prelude::*, token::Token};
 
 #[derive(Debug, Clone)]
 pub enum Expression {

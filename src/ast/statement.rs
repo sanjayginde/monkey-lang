@@ -1,7 +1,4 @@
-use crate::{
-    ast::{Expression, Identifier, Node},
-    token::Token,
-};
+use crate::{ast::prelude::*, token::Token};
 use std::fmt::Display;
 
 #[derive(Debug)]

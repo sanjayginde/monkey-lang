@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::ast::Statement;
+use crate::ast::prelude::*;
 
 #[derive(Debug)]
 pub struct Program {
