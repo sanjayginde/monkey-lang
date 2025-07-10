@@ -129,13 +129,66 @@ fn parse_let_statement(parser: &mut Parser) -> Result<LetStatement, ParserError>
     Ok(statement)
 }
 
+fn parse_return_statement(parser: &mut Parser) -> Result<ReturnStatement, ParserError> {
+    let token = parser.curr_token.as_ref();
+    if token != Some(&Token::Return) {
+        return Err(ParserError::UnexpectedToken(format!(
+            "Expected 'return', got {}",
+            token.unwrap_or(&Token::Eof)
+        )));
+    }
+    parser.advance_tokens();
+
+    let value = parse_expression(parser, Precedence::Lowest)?;
+    parser.advance_tokens();
+
+    Ok(ReturnStatement {
+        token: Token::Return,
+        value,
+    })
+}
+
+fn parse_expression_statement(parser: &mut Parser) -> Result<ExpressionStatement, ParserError> {
+    let expression = parse_expression(parser, Precedence::Lowest)?;
+
+    Ok(ExpressionStatement {
+        token: Token::LeftParen,
+        expression,
+    })
+}
+
+fn parse_expression(
+    parser: &mut Parser,
+    precedence: Precedence,
+) -> Result<Expression, ParserError> {
+    let mut left_expression = parse_prefix_expression(parser)?.ok_or_else(|| {
+        ParserError::NoPrefixExpressionFound(format!(
+            "Expected a prefix expression token, got {}",
+            parser.curr_token.as_ref().unwrap_or(&Token::Eof)
+        ))
+    })?;
+
+    while parser
+        .peek_token
+        .as_ref()
+        .is_some_and(|token| token != &Token::Semicolon && precedence < token.precedence())
+    {
+        match parse_infix_expression(parser, left_expression.to_owned())? {
+            Some(infix_expr) => left_expression = Expression::Infix(infix_expr),
+            None => return Ok(left_expression),
+        }
+    }
+
+    Ok(left_expression)
+}
+
 fn parse_identifier(parser: &mut Parser) -> Result<Identifier, ParserError> {
     let token = parser.curr_token.as_ref();
 
     match token {
         Some(Token::Ident(name)) => Ok(Identifier {
-            token: token.unwrap().clone(),
-            name: name.clone(),
+            token: Token::Ident(name.to_owned()),
+            name: name.to_owned(),
         }),
         _ => Err(ParserError::UnexpectedToken(format!(
             "Expected identifier, got {}",
@@ -144,45 +197,12 @@ fn parse_identifier(parser: &mut Parser) -> Result<Identifier, ParserError> {
     }
 }
 
-fn parse_expression(
-    parser: &mut Parser,
-    precedence: Precedence,
-) -> Result<Expression, ParserError> {
-    let left_expr = parse_prefix_expression(parser)?;
-
-    if left_expr.is_none() {
-        return Err(ParserError::NoPrefixExpressionFound(format!(
-            "Expected an prefix expression token, got {}",
-            parser.curr_token.as_ref().unwrap_or(&Token::Eof)
-        )));
-    }
-
-    let mut left_expression: Expression = left_expr.unwrap();
-
-    println!("left: {} ({:?})", left_expression, precedence);
-
-    let token = parser.peek_token.clone().unwrap();
-    println!("\tpeek: {:?})", token);
-    while token != Token::Semicolon && precedence < token.precedence() {
-        let infix_expression = parse_infix_expression(parser, left_expression.clone())?;
-        if infix_expression.is_none() {
-            println!("no infix expression");
-            return Ok(left_expression);
-        }
-
-        left_expression = Expression::Infix(infix_expression.unwrap());
-        println!("\tleft: {}", left_expression);
-    }
-
-    Ok(left_expression)
-}
-
 fn parse_integer_literal(parser: &mut Parser) -> Result<IntegerLiteral, ParserError> {
     let token = parser.curr_token.as_ref();
 
     match token {
         Some(Token::Int(value)) => Ok(IntegerLiteral {
-            token: token.unwrap().clone(),
+            token: Token::Int(*value),
             value: *value,
         }),
         _ => Err(ParserError::UnexpectedToken(format!(
@@ -199,7 +219,7 @@ fn parse_prefix_expression(parser: &mut Parser) -> Result<Option<Expression>, Pa
         Some(Token::Ident(_)) => Ok(Some(Expression::Identifier(parse_identifier(parser)?))),
         Some(Token::Int(_)) => Ok(Some(Expression::Integer(parse_integer_literal(parser)?))),
         Some(Token::Bang) | Some(Token::Minus) => {
-            let operator = token.unwrap().clone();
+            let operator = token.unwrap().to_owned();
             parser.advance_tokens();
 
             let expression = parse_expression(parser, Precedence::Prefix)?;
@@ -222,10 +242,7 @@ fn parse_infix_expression(
     parser: &mut Parser,
     left: Expression,
 ) -> Result<Option<InfixExpression>, ParserError> {
-    parser.advance_tokens();
-
-    let operator = parser.curr_token.as_ref();
-    println!("\t\top: ({:?})", operator);
+    let operator = parser.peek_token.as_ref();
     match operator {
         Some(Token::Plus)
         | Some(Token::Minus)
@@ -235,12 +252,11 @@ fn parse_infix_expression(
         | Some(Token::GreaterThan)
         | Some(Token::Equal)
         | Some(Token::NotEqual) => {
-            let operator = operator.unwrap().clone();
+            parser.advance_tokens();
+            let operator = parser.curr_token.as_ref().unwrap().to_owned();
             parser.advance_tokens();
 
             let right = parse_expression(parser, operator.precedence())?;
-            println!("\t\tright: ({:?})", right);
-
             Ok(Some(InfixExpression {
                 left: Box::new(left),
                 operator,
@@ -249,35 +265,6 @@ fn parse_infix_expression(
         }
         _ => Ok(None),
     }
-}
-
-fn parse_return_statement(parser: &mut Parser) -> Result<ReturnStatement, ParserError> {
-    let token = parser.curr_token.as_ref();
-    if token != Some(&Token::Return) {
-        return Err(ParserError::UnexpectedToken(format!(
-            "Expected 'return', got {}",
-            token.unwrap_or(&Token::Eof)
-        )));
-    }
-    parser.advance_tokens();
-
-    let value = parse_expression(parser, Precedence::Lowest)?;
-    parser.advance_tokens();
-
-    Ok(ReturnStatement {
-        token: Token::Return,
-        value,
-    })
-}
-
-fn parse_expression_statement(parser: &mut Parser) -> Result<ExpressionStatement, ParserError> {
-    let expression = parse_expression(parser, Precedence::Lowest)?;
-    parser.advance_tokens();
-
-    Ok(ExpressionStatement {
-        token: Token::LeftParen,
-        expression,
-    })
 }
 
 #[cfg(test)]
@@ -311,7 +298,6 @@ mod test {
 
         assert_eq!(let_stmt.token_literal(), "let");
         assert_eq!(let_stmt.identifier.token_literal(), "x");
-        println!("{:?}", let_stmt.value);
         assert_eq!(let_stmt.value.token_literal(), "+");
     }
 
@@ -343,7 +329,7 @@ mod test {
     }
 
     #[test]
-    fn test_program_with_error() {
+    fn test_program_with_errors() {
         let input = "let  = 5; let five = ; let ten = 10;".to_string();
         let mut lexer = Lexer::new(input);
         let mut parser = Parser::new(&mut lexer);
@@ -364,7 +350,7 @@ mod test {
         assert_eq!(
             parser.errors[1],
             ParserError::NoPrefixExpressionFound(
-                "Expected an prefix expression token, got ;".to_string()
+                "Expected a prefix expression token, got ;".to_string()
             )
         );
     }
@@ -455,9 +441,10 @@ mod test {
     }
 
     #[test]
-    fn test_operator_precendence() {
+    fn test_operator_precedence() {
         let tests = [
             ("-a * b", "((-a) * b)"),
+            ("-a * b; a + b", "((-a) * b)\n(a + b)"),
             ("!-a", "(!(-a))"),
             ("a + b + c", "((a + b) + c)"),
             ("a + b - c", "((a + b) - c)"),
@@ -465,25 +452,25 @@ mod test {
             ("a * b / c", "((a * b) / c)"),
             ("a + b / c", "(a + (b / c))"),
             ("a + b * c + d / e - f", "(((a + (b * c)) + (d / e)) - f)"),
-            ("3 + 4; -5 * 5;", "(3 + 4)((-5) * 5)"),
+            ("-5 * 5;", "((-5) * 5)"),
+            ("3 + 4; -5 * 5;", "(3 + 4)\n((-5) * 5)"),
             ("5 > 4 == 3 < 4", "((5 > 4) == (3 < 4))"),
             ("5 < 4 != 3 > 4", "((5 < 4) != (3 > 4))"),
+            ("3 + 4 + 5 == 3 * 5", "(((3 + 4) + 5) == (3 * 5))"),
+            ("3 + 4 * 5 == 3 + 1", "((3 + (4 * 5)) == (3 + 1))"),
+            ("3 + 4 * 5 == 1", "((3 + (4 * 5)) == 1)"),
+            ("3 + 4 * 5 == 3 + 1", "((3 + (4 * 5)) == (3 + 1))"),
             (
                 "3 + 4 * 5 == 3 * 1 + 4 * 5",
                 "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))",
             ),
         ];
         for test in tests {
-            Lexer::new(format!("{};", test.0))
-                .into_iter()
-                .for_each(|token| {
-                    println!("{:?}", token);
-                });
+            Lexer::new(format!("{};", test.0));
             let mut lexer = Lexer::new(format!("{};", test.0));
             let mut parser = Parser::new(&mut lexer);
 
             let program = parser.parse_program();
-            println!("{}", program.statements.len());
             assert_eq!(program.to_string(), format!("{}\n", test.1));
         }
     }
