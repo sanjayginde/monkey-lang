@@ -72,24 +72,6 @@ impl Display for InfixExpression {
     }
 }
 
-// Helper methods for constructing expressions
-impl Expression {
-    pub fn integer(value: i64) -> Self {
-        Expression::Integer(IntegerLiteral {
-            token: Token::Int(value),
-            value,
-        })
-    }
-
-    pub fn operator(left: Expression, operator: Token, right: Expression) -> Self {
-        Expression::Infix(InfixExpression {
-            left: Box::new(left),
-            operator,
-            right: Box::new(right),
-        })
-    }
-}
-
 impl Expression {
     pub fn as_identifier(&self) -> Option<&Identifier> {
         match self {

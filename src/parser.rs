@@ -243,6 +243,22 @@ fn parse_prefix_expression(parser: &mut Parser) -> Result<Option<Expression>, Pa
         }
         Some(Token::True) => Ok(Some(Expression::Boolean(parse_boolean(parser)?))),
         Some(Token::False) => Ok(Some(Expression::Boolean(parse_boolean(parser)?))),
+        Some(Token::LeftParen) => {
+            parser.advance_tokens();
+
+            let expression = parse_expression(parser, Precedence::Lowest)?;
+
+            if parser.peek_token.as_ref() != Some(&Token::RightParen) {
+                return Err(ParserError::UnexpectedToken(format!(
+                    "Expected closing parenthesis, got {}",
+                    parser.peek_token.as_ref().unwrap_or(&Token::Eof)
+                )));
+            }
+
+            parser.advance_tokens(); // consume the closing parenthesis
+
+            Ok(Some(expression))
+        }
         Some(_) => Ok(None),
         None => Err(ParserError::UnexpectedToken(format!(
             "Expected prefix expression token, got {}",
@@ -279,7 +295,6 @@ fn parse_infix_expression(
         _ => Ok(None),
     }
 }
-
 #[cfg(test)]
 mod test {
     use crate::ast::prelude::*;
@@ -488,6 +503,24 @@ mod test {
     }
 
     #[test]
+    fn test_grouped_expressions() {
+        let tests = [
+            ("(5 + 5) * 2;", "((5 + 5) * 2)"),
+            ("2 * (5 + 5);", "(2 * (5 + 5))"),
+            ("-(5 + 5);", "(-(5 + 5))"),
+            ("!(true == true);", "(!(true == true))"),
+        ];
+
+        for test in tests {
+            let mut lexer = Lexer::new(test.0.to_string());
+            let mut parser = Parser::new(&mut lexer);
+
+            let program = parser.parse_program();
+            assert_eq!(program.to_string(), format!("{}\n", test.1));
+        }
+    }
+
+    #[test]
     fn test_operator_precedence() {
         let tests = [
             ("-a * b", "((-a) * b)"),
@@ -513,6 +546,13 @@ mod test {
             ),
             ("3 > 5 == false", "((3 > 5) == false)"),
             ("3 < 5 == true", "((3 < 5) == true)"),
+            // Grouped expressions
+            ("1 + (2 + 3) + 4", "((1 + (2 + 3)) + 4)"),
+            ("(5 + 5) * 2", "((5 + 5) * 2)"),
+            ("2 / (5 + 5)", "(2 / (5 + 5))"),
+            ("-(5 + 5)", "(-(5 + 5))"),
+            ("-(5 + 5)", "(-(5 + 5))"),
+            ("!(true == true)", "(!(true == true))"),
         ];
         for test in tests {
             Lexer::new(format!("{};", test.0));
