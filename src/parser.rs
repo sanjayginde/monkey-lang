@@ -521,6 +521,20 @@ mod test {
     }
 
     #[test]
+    fn test_broken_grouped_expressions() {
+        let mut lexer = Lexer::new("(5 + 5 * 2;".to_string());
+        let mut parser = Parser::new(&mut lexer);
+
+        let _program = parser.parse_program();
+        assert_eq!(parser.errors.len(), 1);
+
+        assert_eq!(
+            parser.errors[0],
+            ParserError::UnexpectedToken("Expected closing parenthesis, got ;".to_string())
+        );
+    }
+
+    #[test]
     fn test_operator_precedence() {
         let tests = [
             ("-a * b", "((-a) * b)"),
