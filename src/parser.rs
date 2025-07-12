@@ -138,7 +138,7 @@ fn parse_let_statement(parser: &mut Parser) -> Result<LetStatement, ParserError>
         value,
     };
 
-    parser.advance_tokens();
+    parser.assert_peek_and_consume(&Token::Semicolon)?;
 
     Ok(statement)
 }
@@ -148,8 +148,7 @@ fn parse_return_statement(parser: &mut Parser) -> Result<ReturnStatement, Parser
 
     let value = parse_expression(parser, Precedence::Lowest)?;
 
-    parser.advance_tokens();
-    parser.assert_curr_and_consume(&Token::Semicolon)?;
+    parser.assert_peek_and_consume(&Token::Semicolon)?;
 
     Ok(ReturnStatement {
         token: Token::Return,
@@ -170,16 +169,18 @@ fn parse_block_statement(parser: &mut Parser) -> Result<BlockStatement, ParserEr
     parser.assert_curr_and_consume(&Token::LeftBrace)?;
 
     let mut statements = Vec::new();
-    while !parser.curr_is(&Token::RightBrace) {
+    while !parser.curr_is(&Token::RightBrace) && parser.curr_token.is_some() {
         match parse_statement(parser) {
             Ok(statement) => {
                 statements.push(statement);
             }
             Err(err) => return Err(err),
         }
+
+        parser.advance_tokens();
     }
 
-    parser.advance_tokens();
+    parser.assert_curr_and_consume(&Token::RightBrace)?;
 
     Ok(BlockStatement {
         token: Token::LeftBrace,
@@ -636,7 +637,6 @@ mod test {
         let mut parser = Parser::new(&mut lexer);
 
         let program = parser.parse_program();
-        println!("{:?}", parser.errors);
         assert_eq!(parser.errors.len(), 0);
 
         assert_eq!(
@@ -653,7 +653,6 @@ mod test {
         let mut parser = Parser::new(&mut lexer);
 
         let program = parser.parse_program();
-        println!("{:?}", parser.errors);
         assert_eq!(parser.errors.len(), 0);
 
         assert_eq!(
