@@ -1,6 +1,10 @@
+#![allow(dead_code)]
+
 use repl::start_repl;
 
+mod ast;
 mod lexer;
+mod parser;
 mod repl;
 mod token;
 

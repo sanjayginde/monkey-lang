@@ -1,5 +1,19 @@
-use crate::lexer::Lexer;
+use crate::{lexer::Lexer, parser::Parser};
 use std::io::{self, Write};
+
+const MONKEY_FACE: &str = r#"
+            __,__
+   .--.  .-"     "-.  .--.
+  / .. \/  .-. .-.  \/ .. \
+ | |  '|  /   Y   \  |'  | |
+ | \   \  \ 0 | 0 /  /   / |
+  \ '- ,\.-"""""""-./, -' /
+   ''-' /_   ^ ^   _\ '-''
+       |  \._   _./  |
+       \   \ '~' /   /
+        '._ '-=-' _.'
+           '-----'
+"#;
 
 pub fn start_repl() {
     let mut input = String::new();
@@ -11,9 +25,19 @@ pub fn start_repl() {
 
         match io::stdin().read_line(&mut input) {
             Ok(_n) => {
-                let lexer = Lexer::new(&input);
-                for token in lexer {
-                    println!("{:?}", token);
+                let mut lexer = Lexer::new(input.clone());
+                let mut parser = Parser::new(&mut lexer);
+
+                let program = parser.parse_program();
+                if parser.errors.is_empty() {
+                    println!("{program}");
+                } else {
+                    println!("{MONKEY_FACE}");
+                    println!("Woops! We ran into some monkey business here!\n");
+                    println!("Parser errors:");
+                    for error in parser.errors {
+                        println!("\t{error}");
+                    }
                 }
             }
             Err(error) => {
