@@ -205,7 +205,7 @@ fn parse_expression(
         .is_some_and(|token| token != &Token::Semicolon && precedence < token.precedence())
     {
         match parse_infix_expression(parser, left_expression.to_owned())? {
-            Some(infix_expr) => left_expression = Expression::Infix(infix_expr),
+            Some(expr) => left_expression = expr,
             None => return Ok(left_expression),
         }
     }
@@ -320,7 +320,7 @@ fn parse_prefix_expression(parser: &mut Parser) -> Result<Option<Expression>, Pa
 fn parse_infix_expression(
     parser: &mut Parser,
     left: Expression,
-) -> Result<Option<InfixExpression>, ParserError> {
+) -> Result<Option<Expression>, ParserError> {
     let operator = parser.peek_token.as_ref();
     match operator {
         Some(Token::Plus)
@@ -336,14 +336,41 @@ fn parse_infix_expression(
             parser.advance_tokens();
 
             let right = parse_expression(parser, operator.precedence())?;
-            Ok(Some(InfixExpression {
-                left: Box::new(left),
-                operator,
-                right: Box::new(right),
-            }))
+            Ok(Some(Expression::infix(left, operator, right)))
+        }
+        Some(Token::LeftParen) => {
+            parser.advance_tokens();
+            let arguments = parse_call_arguments(parser)?;
+            Ok(Some(Expression::call(left, arguments)))
         }
         _ => Ok(None),
     }
+}
+
+fn parse_call_arguments(parser: &mut Parser) -> Result<Vec<Expression>, ParserError> {
+    parser.assert_curr_and_consume(&Token::LeftParen)?;
+
+    let mut arguments = Vec::new();
+
+    println!("call curr token: {:?}", parser.curr_token);
+
+    if parser.curr_token.as_ref().unwrap() == &Token::RightParen {
+        parser.advance_tokens();
+        return Ok(arguments);
+    }
+
+    arguments.push(parse_expression(parser, Precedence::Lowest)?);
+    parser.advance_tokens();
+
+    while parser.curr_is(&Token::Comma) {
+        parser.advance_tokens();
+        arguments.push(parse_expression(parser, Precedence::Lowest)?);
+        parser.advance_tokens();
+    }
+
+    parser.assert_curr_and_consume(&Token::RightParen)?;
+
+    Ok(arguments)
 }
 
 #[cfg(test)]
@@ -659,5 +686,19 @@ mod test {
             program.to_string(),
             format!("if (x < y) {{\nreturn x;\n}}\nelse {{\nreturn y;\n}}\n",)
         );
+    }
+
+    #[test]
+    fn test_call_expression() {
+        let input = "add(1, 2 * 3, 4 + 5)";
+        Lexer::new(input.to_string());
+        let mut lexer = Lexer::new(input.to_string());
+        let mut parser = Parser::new(&mut lexer);
+
+        let program = parser.parse_program();
+        println!("{:?}", parser.errors);
+        assert_eq!(parser.errors.len(), 0);
+
+        assert_eq!(program.to_string(), format!("add(1, (2 * 3), (4 + 5))\n",));
     }
 }

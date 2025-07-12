@@ -10,6 +10,7 @@ pub enum Expression {
     Prefix(PrefixExpression),
     Infix(InfixExpression),
     If(IfExpression),
+    Call(CallExpression),
 }
 
 impl Node for Expression {
@@ -21,6 +22,7 @@ impl Node for Expression {
             Expression::Prefix(expr) => expr.token_literal(),
             Expression::Infix(expr) => expr.token_literal(),
             Expression::If(expr) => expr.token_literal(),
+            Expression::Call(expr) => expr.token_literal(),
         }
     }
 }
@@ -34,6 +36,7 @@ impl Display for Expression {
             Expression::Prefix(expr) => expr.fmt(f),
             Expression::Infix(expr) => expr.fmt(f),
             Expression::If(expr) => expr.fmt(f),
+            Expression::Call(expr) => expr.fmt(f),
         }
     }
 }
@@ -104,6 +107,31 @@ impl Display for IfExpression {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct CallExpression {
+    pub function: Box<Expression>,
+    pub arguments: Vec<Expression>,
+}
+
+impl Node for CallExpression {
+    fn token_literal(&self) -> String {
+        Token::LeftParen.to_string()
+    }
+}
+
+impl Display for CallExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let args = self
+            .arguments
+            .iter()
+            .map(|arg| arg.to_string())
+            .collect::<Vec<String>>()
+            .join(", ");
+
+        write!(f, "{}({})", self.function, args)
+    }
+}
+
 // Helper methods for constructing expressions
 impl Expression {
     pub fn integer(value: i64) -> Self {
@@ -132,47 +160,61 @@ impl Expression {
             alternative,
         })
     }
+
+    pub fn call(function: Expression, arguments: Vec<Expression>) -> Self {
+        Expression::Call(CallExpression {
+            function: Box::new(function),
+            arguments,
+        })
+    }
 }
 
 impl Expression {
     pub fn as_identifier(&self) -> Option<&Identifier> {
         match self {
-            Expression::Identifier(exp) => Some(exp),
+            Expression::Identifier(expr) => Some(expr),
             _ => None,
         }
     }
 
     pub fn as_integer(&self) -> Option<&IntegerLiteral> {
         match self {
-            Expression::Integer(stmt) => Some(stmt),
+            Expression::Integer(expr) => Some(expr),
             _ => None,
         }
     }
 
     pub fn as_boolean(&self) -> Option<&BooleanLiteral> {
         match self {
-            Expression::Boolean(stmt) => Some(stmt),
+            Expression::Boolean(expr) => Some(expr),
             _ => None,
         }
     }
 
     pub fn as_prefix(&self) -> Option<&PrefixExpression> {
         match self {
-            Expression::Prefix(stmt) => Some(stmt),
+            Expression::Prefix(expr) => Some(expr),
             _ => None,
         }
     }
 
     pub fn as_infix(&self) -> Option<&InfixExpression> {
         match self {
-            Expression::Infix(stmt) => Some(stmt),
+            Expression::Infix(expr) => Some(expr),
             _ => None,
         }
     }
 
     pub fn as_if(&self) -> Option<&IfExpression> {
         match self {
-            Expression::If(stmt) => Some(stmt),
+            Expression::If(expr) => Some(expr),
+            _ => None,
+        }
+    }
+
+    pub fn as_call(&self) -> Option<&CallExpression> {
+        match self {
+            Expression::Call(expr) => Some(expr),
             _ => None,
         }
     }
