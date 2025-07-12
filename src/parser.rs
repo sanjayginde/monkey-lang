@@ -32,12 +32,12 @@ impl Parser<'_> {
         self.peek_token = self.lexer.next();
     }
 
-    pub fn curr_token_is(&self, token_type: &Token) -> bool {
+    pub fn curr_is(&self, token_type: &Token) -> bool {
         self.curr_token.as_ref() == Some(&token_type)
     }
 
-    pub fn expect_curr_token(&mut self, token_type: &Token) -> Result<(), ParserError> {
-        if self.curr_token_is(token_type) {
+    pub fn assert_curr_and_consume(&mut self, token_type: &Token) -> Result<(), ParserError> {
+        if self.curr_is(token_type) {
             self.advance_tokens();
             Ok(())
         } else {
@@ -49,12 +49,12 @@ impl Parser<'_> {
         }
     }
 
-    pub fn peek_token_is(&self, token_type: &Token) -> bool {
+    pub fn peek_is(&self, token_type: &Token) -> bool {
         self.peek_token.as_ref() == Some(&token_type)
     }
 
-    pub fn expect_peek_token(&mut self, token_type: &Token) -> Result<(), ParserError> {
-        if self.peek_token_is(token_type) {
+    pub fn assert_peek_and_consume(&mut self, token_type: &Token) -> Result<(), ParserError> {
+        if self.peek_is(token_type) {
             self.advance_tokens();
             Ok(())
         } else {
@@ -123,12 +123,12 @@ fn parse_statement(parser: &mut Parser) -> Result<Statement, ParserError> {
 }
 
 fn parse_let_statement(parser: &mut Parser) -> Result<LetStatement, ParserError> {
-    parser.expect_curr_token(&Token::Let)?;
+    parser.assert_curr_and_consume(&Token::Let)?;
 
     let identifier: Identifier = parse_identifier(parser)?;
 
     parser.advance_tokens();
-    parser.expect_curr_token(&Token::Assign)?;
+    parser.assert_curr_and_consume(&Token::Assign)?;
 
     let value: Expression = parse_expression(parser, Precedence::Lowest)?;
 
@@ -144,12 +144,12 @@ fn parse_let_statement(parser: &mut Parser) -> Result<LetStatement, ParserError>
 }
 
 fn parse_return_statement(parser: &mut Parser) -> Result<ReturnStatement, ParserError> {
-    parser.expect_curr_token(&Token::Return)?;
+    parser.assert_curr_and_consume(&Token::Return)?;
 
     let value = parse_expression(parser, Precedence::Lowest)?;
 
     parser.advance_tokens();
-    parser.expect_curr_token(&Token::Semicolon)?;
+    parser.assert_curr_and_consume(&Token::Semicolon)?;
 
     Ok(ReturnStatement {
         token: Token::Return,
@@ -167,10 +167,10 @@ fn parse_expression_statement(parser: &mut Parser) -> Result<ExpressionStatement
 }
 
 fn parse_block_statement(parser: &mut Parser) -> Result<BlockStatement, ParserError> {
-    parser.expect_curr_token(&Token::LeftBrace)?;
+    parser.assert_curr_and_consume(&Token::LeftBrace)?;
 
     let mut statements = Vec::new();
-    while !parser.curr_token_is(&Token::RightBrace) {
+    while !parser.curr_is(&Token::RightBrace) {
         match parse_statement(parser) {
             Ok(statement) => {
                 statements.push(statement);
@@ -284,18 +284,18 @@ fn parse_prefix_expression(parser: &mut Parser) -> Result<Option<Expression>, Pa
 
             let expression = parse_expression(parser, Precedence::Lowest)?;
 
-            parser.expect_peek_token(&Token::RightParen)?;
+            parser.assert_peek_and_consume(&Token::RightParen)?;
 
             Ok(Some(expression))
         }
         Some(Token::If) => {
-            parser.expect_peek_token(&Token::LeftParen)?;
+            parser.assert_peek_and_consume(&Token::LeftParen)?;
             let condition = parse_expression(parser, Precedence::Lowest)?;
-            parser.expect_curr_token(&Token::RightParen)?;
+            parser.assert_curr_and_consume(&Token::RightParen)?;
 
             let consequence = parse_block_statement(parser)?;
 
-            let alternative = if parser.curr_token_is(&Token::Else) {
+            let alternative = if parser.curr_is(&Token::Else) {
                 parser.advance_tokens();
                 Some(parse_block_statement(parser)?)
             } else {
