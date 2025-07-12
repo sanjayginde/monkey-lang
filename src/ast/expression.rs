@@ -78,10 +78,8 @@ impl Display for InfixExpression {
 #[derive(Debug, Clone)]
 pub struct IfExpression {
     pub condition: Box<Expression>,
-    pub consequence: Box<Expression>,
-    // pub consequence: BlockStatement,
-    pub alternative: Option<Box<Expression>>,
-    // pub alternative: Option<BlockStatement>,
+    pub consequence: BlockStatement,
+    pub alternative: Option<BlockStatement>,
 }
 
 impl Node for IfExpression {
@@ -92,7 +90,17 @@ impl Node for IfExpression {
 
 impl Display for IfExpression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "if {} {{ {} }}", self.condition, self.consequence)
+        let alternative = self
+            .alternative
+            .as_ref()
+            .map(|alternative| format!("\nelse {}", alternative))
+            .unwrap_or("".to_string());
+
+        write!(
+            f,
+            "if {} {}{}",
+            self.condition, self.consequence, alternative
+        )
     }
 }
 
@@ -115,13 +123,13 @@ impl Expression {
 
     pub fn if_expression(
         condition: Expression,
-        consequence: Expression,
-        alternative: Option<Expression>,
+        consequence: BlockStatement,
+        alternative: Option<BlockStatement>,
     ) -> Self {
         Expression::If(IfExpression {
             condition: Box::new(condition),
-            consequence: Box::new(consequence),
-            alternative: alternative.map(|exp| Box::new(exp)),
+            consequence,
+            alternative,
         })
     }
 }

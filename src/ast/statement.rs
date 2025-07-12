@@ -1,11 +1,12 @@
 use crate::{ast::prelude::*, token::Token};
 use std::fmt::Display;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Statement {
     Let(LetStatement),
     Return(ReturnStatement),
     Expression(ExpressionStatement),
+    Block(BlockStatement),
 }
 
 impl Node for Statement {
@@ -14,6 +15,7 @@ impl Node for Statement {
             Statement::Let(stmt) => stmt.token_literal(),
             Statement::Return(stmt) => stmt.token_literal(),
             Statement::Expression(stmt) => stmt.token_literal(),
+            Statement::Block(stmt) => stmt.token_literal(),
         }
     }
 }
@@ -24,6 +26,7 @@ impl Display for Statement {
             Statement::Let(stmt) => stmt.fmt(f),
             Statement::Return(stmt) => stmt.fmt(f),
             Statement::Expression(stmt) => stmt.fmt(f),
+            Statement::Block(stmt) => stmt.fmt(f),
         }
     }
 }
@@ -77,7 +80,7 @@ impl Statement {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LetStatement {
     pub token: Token,
     pub identifier: Identifier,
@@ -96,7 +99,7 @@ impl Display for LetStatement {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ReturnStatement {
     pub token: Token,
     pub value: Expression,
@@ -110,11 +113,11 @@ impl Node for ReturnStatement {
 
 impl Display for ReturnStatement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} {}", self.token, self.value)
+        write!(f, "{} {};", self.token, self.value)
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ExpressionStatement {
     pub token: Token,
     pub expression: Expression,
@@ -129,5 +132,31 @@ impl Node for ExpressionStatement {
 impl Display for ExpressionStatement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.expression)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct BlockStatement {
+    pub token: Token,
+    pub statements: Vec<Statement>,
+}
+
+impl Node for BlockStatement {
+    fn token_literal(&self) -> String {
+        self.token.to_string()
+    }
+}
+
+impl Display for BlockStatement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{{\n{}\n}}",
+            self.statements
+                .iter()
+                .map(|stmt| stmt.to_string())
+                .collect::<Vec<String>>()
+                .join("\n")
+        )
     }
 }

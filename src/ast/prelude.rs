@@ -11,4 +11,4 @@ pub use super::{Expression, Node, Program, Statement};
 pub use super::{BooleanLiteral, Identifier, InfixExpression, IntegerLiteral, PrefixExpression};
 
 // Re-export concrete statement types
-pub use super::{ExpressionStatement, LetStatement, ReturnStatement};
+pub use super::{BlockStatement, ExpressionStatement, LetStatement, ReturnStatement};

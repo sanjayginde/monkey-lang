@@ -166,6 +166,27 @@ fn parse_expression_statement(parser: &mut Parser) -> Result<ExpressionStatement
     })
 }
 
+fn parse_block_statement(parser: &mut Parser) -> Result<BlockStatement, ParserError> {
+    parser.expect_curr_token(&Token::LeftBrace)?;
+
+    let mut statements = Vec::new();
+    while !parser.curr_token_is(&Token::RightBrace) {
+        match parse_statement(parser) {
+            Ok(statement) => {
+                statements.push(statement);
+            }
+            Err(err) => return Err(err),
+        }
+    }
+
+    parser.advance_tokens();
+
+    Ok(BlockStatement {
+        token: Token::LeftBrace,
+        statements,
+    })
+}
+
 fn parse_expression(
     parser: &mut Parser,
     precedence: Precedence,
@@ -270,21 +291,21 @@ fn parse_prefix_expression(parser: &mut Parser) -> Result<Option<Expression>, Pa
         Some(Token::If) => {
             parser.expect_peek_token(&Token::LeftParen)?;
             let condition = parse_expression(parser, Precedence::Lowest)?;
-
             parser.expect_curr_token(&Token::RightParen)?;
-            parser.expect_curr_token(&Token::LeftBrace)?;
 
-            let consequence = parse_expression(parser, Precedence::Lowest)?;
-            // let consequence = parse_block_statement(parser)?;
+            let consequence = parse_block_statement(parser)?;
 
-            parser.advance_tokens();
-            parser.expect_curr_token(&Token::RightBrace)?;
+            let alternative = if parser.curr_token_is(&Token::Else) {
+                parser.advance_tokens();
+                Some(parse_block_statement(parser)?)
+            } else {
+                None
+            };
 
-            // let alternative = parse_block_statement(parser)?;
             Ok(Some(Expression::if_expression(
                 condition,
                 consequence,
-                None,
+                alternative,
             )))
         }
         Some(_) => Ok(None),
@@ -323,6 +344,7 @@ fn parse_infix_expression(
         _ => Ok(None),
     }
 }
+
 #[cfg(test)]
 mod test {
     use crate::ast::prelude::*;
@@ -608,7 +630,7 @@ mod test {
 
     #[test]
     fn test_if_statement() {
-        let input = "if (x < y) { x }";
+        let input = "if (x < y) { return x; }";
         Lexer::new(input.to_string());
         let mut lexer = Lexer::new(input.to_string());
         let mut parser = Parser::new(&mut lexer);
@@ -617,6 +639,26 @@ mod test {
         println!("{:?}", parser.errors);
         assert_eq!(parser.errors.len(), 0);
 
-        assert_eq!(program.to_string(), format!("if (x < y) {{ x }}\n",));
+        assert_eq!(
+            program.to_string(),
+            format!("if (x < y) {{\nreturn x;\n}}\n",)
+        );
+    }
+
+    #[test]
+    fn test_if_else_statement() {
+        let input = "if (x < y) { return x; } else { return y; }";
+        Lexer::new(input.to_string());
+        let mut lexer = Lexer::new(input.to_string());
+        let mut parser = Parser::new(&mut lexer);
+
+        let program = parser.parse_program();
+        println!("{:?}", parser.errors);
+        assert_eq!(parser.errors.len(), 0);
+
+        assert_eq!(
+            program.to_string(),
+            format!("if (x < y) {{\nreturn x;\n}}\nelse {{\nreturn y;\n}}\n",)
+        );
     }
 }
