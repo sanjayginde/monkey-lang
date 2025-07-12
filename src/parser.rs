@@ -98,13 +98,21 @@ impl Parser<'_> {
 #[derive(Debug, PartialEq, Clone)]
 pub enum ParserError {
     UnexpectedToken(String),
-    NoPrefixExpressionFound(String),
+    NoPrefixExpressionTokenFound(Token),
     Unimplemented(String),
 }
 
 impl Display for ParserError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(fmt, "{self:?}")
+        match self {
+            ParserError::UnexpectedToken(token) => write!(fmt, "Unexpected token: {token}"),
+            ParserError::NoPrefixExpressionTokenFound(token) => {
+                write!(fmt, "No prefix expression found for token: Got {token}")
+            }
+            ParserError::Unimplemented(feature) => {
+                write!(fmt, "Unimplemented feature: {feature}")
+            }
+        }
     }
 }
 
@@ -193,10 +201,9 @@ fn parse_expression(
     precedence: Precedence,
 ) -> Result<Expression, ParserError> {
     let mut left_expression = parse_prefix_expression(parser)?.ok_or_else(|| {
-        ParserError::NoPrefixExpressionFound(format!(
-            "Expected a prefix expression token, got {}",
-            parser.curr_token.as_ref().unwrap_or(&Token::Eof)
-        ))
+        ParserError::NoPrefixExpressionTokenFound(
+            parser.curr_token.as_ref().unwrap_or(&Token::Eof).to_owned(),
+        )
     })?;
 
     while parser
@@ -453,9 +460,7 @@ mod test {
         );
         assert_eq!(
             parser.errors[1],
-            ParserError::NoPrefixExpressionFound(
-                "Expected a prefix expression token, got ;".to_string()
-            )
+            ParserError::NoPrefixExpressionTokenFound(Token::Semicolon)
         );
     }
 
