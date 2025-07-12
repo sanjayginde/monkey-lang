@@ -134,10 +134,22 @@ impl Display for CallExpression {
 
 // Helper methods for constructing expressions
 impl Expression {
-    pub fn integer(value: i64) -> Self {
-        Expression::Integer(IntegerLiteral {
-            token: Token::Int(value),
-            value,
+    pub fn identifier(identifier: Identifier) -> Self {
+        Expression::Identifier(identifier)
+    }
+
+    pub fn integer(integer: IntegerLiteral) -> Self {
+        Expression::Integer(integer)
+    }
+
+    pub fn boolean(boolean: BooleanLiteral) -> Self {
+        Expression::Boolean(boolean)
+    }
+
+    pub fn prefix(operator: Token, expression: Expression) -> Self {
+        Expression::Prefix(PrefixExpression {
+            operator,
+            expression: Box::new(expression),
         })
     }
 

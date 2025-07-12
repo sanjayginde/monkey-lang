@@ -266,25 +266,22 @@ fn parse_prefix_expression(parser: &mut Parser) -> Result<Option<Expression>, Pa
     let token = parser.curr_token.as_ref();
 
     match token {
-        Some(Token::Ident(_)) => Ok(Some(Expression::Identifier(parse_identifier(parser)?))),
-        Some(Token::Int(_)) => Ok(Some(Expression::Integer(parse_integer_literal(parser)?))),
+        Some(Token::Ident(_)) => Ok(Some(Expression::identifier(parse_identifier(parser)?))),
+        Some(Token::Int(_)) => Ok(Some(Expression::integer(parse_integer_literal(parser)?))),
         Some(Token::Bang) | Some(Token::Minus) => {
             let operator = token.unwrap().to_owned();
             parser.advance_tokens();
 
             let expression = parse_expression(parser, Precedence::Prefix)?;
-            Ok(Some(Expression::Prefix(PrefixExpression {
-                operator,
-                expression: Box::new(expression),
-            })))
+            Ok(Some(Expression::prefix(operator, expression)))
         }
-        Some(Token::True) => Ok(Some(Expression::Boolean(parse_boolean(parser)?))),
-        Some(Token::False) => Ok(Some(Expression::Boolean(parse_boolean(parser)?))),
+        Some(Token::True) | Some(Token::False) => {
+            Ok(Some(Expression::boolean(parse_boolean(parser)?)))
+        }
         Some(Token::LeftParen) => {
             parser.advance_tokens();
 
             let expression = parse_expression(parser, Precedence::Lowest)?;
-
             parser.assert_peek_and_consume(&Token::RightParen)?;
 
             Ok(Some(expression))
