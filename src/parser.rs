@@ -32,6 +32,40 @@ impl Parser<'_> {
         self.peek_token = self.lexer.next();
     }
 
+    pub fn curr_token_is(&self, token_type: &Token) -> bool {
+        self.curr_token.as_ref() == Some(&token_type)
+    }
+
+    pub fn expect_curr_token(&mut self, token_type: &Token) -> Result<(), ParserError> {
+        if self.curr_token_is(token_type) {
+            self.advance_tokens();
+            Ok(())
+        } else {
+            Err(ParserError::UnexpectedToken(format!(
+                "Expected '{}', got '{}'",
+                token_type,
+                self.curr_token.as_ref().unwrap_or(&Token::Eof)
+            )))
+        }
+    }
+
+    pub fn peek_token_is(&self, token_type: &Token) -> bool {
+        self.peek_token.as_ref() == Some(&token_type)
+    }
+
+    pub fn expect_peek_token(&mut self, token_type: &Token) -> Result<(), ParserError> {
+        if self.peek_token_is(token_type) {
+            self.advance_tokens();
+            Ok(())
+        } else {
+            Err(ParserError::UnexpectedToken(format!(
+                "Expected '{}', got '{}'",
+                token_type,
+                self.peek_token.as_ref().unwrap_or(&Token::Eof)
+            )))
+        }
+    }
+
     pub fn parse_program(&mut self) -> Program {
         let mut program = Program { statements: vec![] };
 
@@ -89,27 +123,13 @@ fn parse_statement(parser: &mut Parser) -> Result<Statement, ParserError> {
 }
 
 fn parse_let_statement(parser: &mut Parser) -> Result<LetStatement, ParserError> {
-    let token = parser.curr_token.as_ref();
-    if token != Some(&Token::Let) {
-        return Err(ParserError::UnexpectedToken(format!(
-            "Expected 'let', got {}",
-            token.unwrap_or(&Token::Eof)
-        )));
-    }
+    parser.expect_curr_token(&Token::Let)?;
 
-    parser.advance_tokens();
     let identifier: Identifier = parse_identifier(parser)?;
 
     parser.advance_tokens();
-    let assign_token = parser.curr_token.as_ref();
-    if assign_token != Some(&Token::Assign) {
-        return Err(ParserError::UnexpectedToken(format!(
-            "Expected '=' after identifier, got {}",
-            assign_token.unwrap_or(&Token::Eof)
-        )));
-    }
+    parser.expect_curr_token(&Token::Assign)?;
 
-    parser.advance_tokens();
     let value: Expression = parse_expression(parser, Precedence::Lowest)?;
 
     let statement = LetStatement {
@@ -124,17 +144,12 @@ fn parse_let_statement(parser: &mut Parser) -> Result<LetStatement, ParserError>
 }
 
 fn parse_return_statement(parser: &mut Parser) -> Result<ReturnStatement, ParserError> {
-    let token = parser.curr_token.as_ref();
-    if token != Some(&Token::Return) {
-        return Err(ParserError::UnexpectedToken(format!(
-            "Expected 'return', got {}",
-            token.unwrap_or(&Token::Eof)
-        )));
-    }
-    parser.advance_tokens();
+    parser.expect_curr_token(&Token::Return)?;
 
     let value = parse_expression(parser, Precedence::Lowest)?;
+
     parser.advance_tokens();
+    parser.expect_curr_token(&Token::Semicolon)?;
 
     Ok(ReturnStatement {
         token: Token::Return,
@@ -248,16 +263,29 @@ fn parse_prefix_expression(parser: &mut Parser) -> Result<Option<Expression>, Pa
 
             let expression = parse_expression(parser, Precedence::Lowest)?;
 
-            if parser.peek_token.as_ref() != Some(&Token::RightParen) {
-                return Err(ParserError::UnexpectedToken(format!(
-                    "Expected closing parenthesis, got {}",
-                    parser.peek_token.as_ref().unwrap_or(&Token::Eof)
-                )));
-            }
-
-            parser.advance_tokens(); // consume the closing parenthesis
+            parser.expect_peek_token(&Token::RightParen)?;
 
             Ok(Some(expression))
+        }
+        Some(Token::If) => {
+            parser.expect_peek_token(&Token::LeftParen)?;
+            let condition = parse_expression(parser, Precedence::Lowest)?;
+
+            parser.expect_curr_token(&Token::RightParen)?;
+            parser.expect_curr_token(&Token::LeftBrace)?;
+
+            let consequence = parse_expression(parser, Precedence::Lowest)?;
+            // let consequence = parse_block_statement(parser)?;
+
+            parser.advance_tokens();
+            parser.expect_curr_token(&Token::RightBrace)?;
+
+            // let alternative = parse_block_statement(parser)?;
+            Ok(Some(Expression::if_expression(
+                condition,
+                consequence,
+                None,
+            )))
         }
         Some(_) => Ok(None),
         None => Err(ParserError::UnexpectedToken(format!(
@@ -530,7 +558,7 @@ mod test {
 
         assert_eq!(
             parser.errors[0],
-            ParserError::UnexpectedToken("Expected closing parenthesis, got ;".to_string())
+            ParserError::UnexpectedToken("Expected ')', got ';'".to_string())
         );
     }
 
@@ -576,5 +604,19 @@ mod test {
             let program = parser.parse_program();
             assert_eq!(program.to_string(), format!("{}\n", test.1));
         }
+    }
+
+    #[test]
+    fn test_if_statement() {
+        let input = "if (x < y) { x }";
+        Lexer::new(input.to_string());
+        let mut lexer = Lexer::new(input.to_string());
+        let mut parser = Parser::new(&mut lexer);
+
+        let program = parser.parse_program();
+        println!("{:?}", parser.errors);
+        assert_eq!(parser.errors.len(), 0);
+
+        assert_eq!(program.to_string(), format!("if (x < y) {{ x }}\n",));
     }
 }

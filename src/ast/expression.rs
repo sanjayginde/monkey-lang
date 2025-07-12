@@ -9,6 +9,7 @@ pub enum Expression {
     Boolean(BooleanLiteral),
     Prefix(PrefixExpression),
     Infix(InfixExpression),
+    If(IfExpression),
 }
 
 impl Node for Expression {
@@ -19,6 +20,7 @@ impl Node for Expression {
             Expression::Boolean(expr) => expr.token_literal(),
             Expression::Prefix(expr) => expr.token_literal(),
             Expression::Infix(expr) => expr.token_literal(),
+            Expression::If(expr) => expr.token_literal(),
         }
     }
 }
@@ -31,6 +33,7 @@ impl Display for Expression {
             Expression::Boolean(expr) => expr.fmt(f),
             Expression::Prefix(expr) => expr.fmt(f),
             Expression::Infix(expr) => expr.fmt(f),
+            Expression::If(expr) => expr.fmt(f),
         }
     }
 }
@@ -72,6 +75,57 @@ impl Display for InfixExpression {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct IfExpression {
+    pub condition: Box<Expression>,
+    pub consequence: Box<Expression>,
+    // pub consequence: BlockStatement,
+    pub alternative: Option<Box<Expression>>,
+    // pub alternative: Option<BlockStatement>,
+}
+
+impl Node for IfExpression {
+    fn token_literal(&self) -> String {
+        Token::If.to_string()
+    }
+}
+
+impl Display for IfExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "if {} {{ {} }}", self.condition, self.consequence)
+    }
+}
+
+// Helper methods for constructing expressions
+impl Expression {
+    pub fn integer(value: i64) -> Self {
+        Expression::Integer(IntegerLiteral {
+            token: Token::Int(value),
+            value,
+        })
+    }
+
+    pub fn infix(left: Expression, operator: Token, right: Expression) -> Self {
+        Expression::Infix(InfixExpression {
+            left: Box::new(left),
+            operator,
+            right: Box::new(right),
+        })
+    }
+
+    pub fn if_expression(
+        condition: Expression,
+        consequence: Expression,
+        alternative: Option<Expression>,
+    ) -> Self {
+        Expression::If(IfExpression {
+            condition: Box::new(condition),
+            consequence: Box::new(consequence),
+            alternative: alternative.map(|exp| Box::new(exp)),
+        })
+    }
+}
+
 impl Expression {
     pub fn as_identifier(&self) -> Option<&Identifier> {
         match self {
@@ -104,6 +158,13 @@ impl Expression {
     pub fn as_infix(&self) -> Option<&InfixExpression> {
         match self {
             Expression::Infix(stmt) => Some(stmt),
+            _ => None,
+        }
+    }
+
+    pub fn as_if(&self) -> Option<&IfExpression> {
+        match self {
+            Expression::If(stmt) => Some(stmt),
             _ => None,
         }
     }
