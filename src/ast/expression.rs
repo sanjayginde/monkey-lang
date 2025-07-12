@@ -96,7 +96,7 @@ impl Display for IfExpression {
         let alternative = self
             .alternative
             .as_ref()
-            .map(|alternative| format!("\nelse {}", alternative))
+            .map(|alternative| format!("\nelse {alternative}"))
             .unwrap_or("".to_string());
 
         write!(

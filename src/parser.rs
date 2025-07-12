@@ -33,7 +33,7 @@ impl Parser<'_> {
     }
 
     pub fn curr_is(&self, token_type: &Token) -> bool {
-        self.curr_token.as_ref() == Some(&token_type)
+        self.curr_token.as_ref() == Some(token_type)
     }
 
     pub fn assert_curr_and_consume(&mut self, token_type: &Token) -> Result<(), ParserError> {
@@ -50,7 +50,7 @@ impl Parser<'_> {
     }
 
     pub fn peek_is(&self, token_type: &Token) -> bool {
-        self.peek_token.as_ref() == Some(&token_type)
+        self.peek_token.as_ref() == Some(token_type)
     }
 
     pub fn assert_peek_and_consume(&mut self, token_type: &Token) -> Result<(), ParserError> {
