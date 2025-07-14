@@ -72,3 +72,30 @@ impl Display for BooleanLiteral {
         write!(f, "{}", self.value)
     }
 }
+
+#[derive(Debug, Clone)]
+pub struct FunctionLiteral {
+    pub token: Token,
+    pub name: Identifier,
+    pub parameters: Vec<Identifier>,
+    pub body: BlockStatement,
+}
+
+impl Node for FunctionLiteral {
+    fn token_literal(&self) -> String {
+        self.token.to_string()
+    }
+}
+
+impl Display for FunctionLiteral {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let params = self
+            .parameters
+            .iter()
+            .map(|arg| arg.to_string())
+            .collect::<Vec<String>>()
+            .join(", ");
+
+        write!(f, "fn {}({params}) {}", self.name, self.body)
+    }
+}

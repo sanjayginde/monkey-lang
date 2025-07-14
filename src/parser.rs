@@ -156,7 +156,9 @@ fn parse_return_statement(parser: &mut Parser) -> Result<ReturnStatement, Parser
 
     let value = parse_expression(parser, Precedence::Lowest)?;
 
-    parser.assert_peek_and_consume(&Token::Semicolon)?;
+    if parser.peek_is(&Token::Semicolon) {
+        parser.advance_tokens(); // Move to semicolon
+    }
 
     Ok(ReturnStatement {
         token: Token::Return,
@@ -166,6 +168,10 @@ fn parse_return_statement(parser: &mut Parser) -> Result<ReturnStatement, Parser
 
 fn parse_expression_statement(parser: &mut Parser) -> Result<ExpressionStatement, ParserError> {
     let expression = parse_expression(parser, Precedence::Lowest)?;
+
+    if parser.peek_is(&Token::Semicolon) {
+        parser.advance_tokens(); // Move to semicolon
+    }
 
     Ok(ExpressionStatement {
         token: Token::LeftParen,
@@ -184,7 +190,6 @@ fn parse_block_statement(parser: &mut Parser) -> Result<BlockStatement, ParserEr
             }
             Err(err) => return Err(err),
         }
-
         parser.advance_tokens();
     }
 
@@ -313,6 +318,17 @@ fn parse_prefix_expression(parser: &mut Parser) -> Result<Option<Expression>, Pa
                 alternative,
             )))
         }
+        Some(Token::Function) => {
+            parser.advance_tokens();
+
+            let name = parse_identifier(parser)?;
+            parser.advance_tokens();
+
+            let parameters = parse_function_parameters(parser)?;
+            let body = parse_block_statement(parser)?;
+
+            Ok(Some(Expression::function(name, parameters, body)))
+        }
         Some(_) => Ok(None),
         None => Err(ParserError::UnexpectedToken(format!(
             "Expected prefix expression token, got {}",
@@ -351,14 +367,34 @@ fn parse_infix_expression(
     }
 }
 
+fn parse_function_parameters(parser: &mut Parser) -> Result<Vec<Identifier>, ParserError> {
+    parser.assert_curr_and_consume(&Token::LeftParen)?;
+    let mut parameters = vec![];
+
+    if parser.curr_is(&Token::RightParen) {
+        parser.advance_tokens();
+        return Ok(parameters);
+    }
+
+    parameters.push(parse_identifier(parser)?);
+    parser.advance_tokens();
+
+    while parser.curr_is(&Token::Comma) {
+        parser.advance_tokens();
+        parameters.push(parse_identifier(parser)?);
+        parser.advance_tokens();
+    }
+
+    parser.assert_curr_and_consume(&Token::RightParen)?;
+    return Ok(parameters);
+}
+
 fn parse_call_arguments(parser: &mut Parser) -> Result<Vec<Expression>, ParserError> {
     parser.assert_curr_and_consume(&Token::LeftParen)?;
 
     let mut arguments = Vec::new();
 
-    println!("call curr token: {:?}", parser.curr_token);
-
-    if parser.curr_token.as_ref().unwrap() == &Token::RightParen {
+    if parser.curr_is(&Token::RightParen) {
         parser.advance_tokens();
         return Ok(arguments);
     }
@@ -676,7 +712,7 @@ mod test {
 
     #[test]
     fn test_if_else_statement() {
-        let input = "if (x < y) { return x; } else { return y; }";
+        let input = "if (x < y) { return x; } else { print(y); return y; }";
         Lexer::new(input.to_string());
         let mut lexer = Lexer::new(input.to_string());
         let mut parser = Parser::new(&mut lexer);
@@ -686,7 +722,39 @@ mod test {
 
         assert_eq!(
             program.to_string(),
-            format!("if (x < y) {{\nreturn x;\n}}\nelse {{\nreturn y;\n}}\n",)
+            format!("if (x < y) {{\nreturn x;\n}}\nelse {{\nprint(y);\nreturn y;\n}}\n",)
+        );
+    }
+
+    #[test]
+    fn test_function_declaration() {
+        let input = "fn foo(x, y) { x + y; }";
+        Lexer::new(input.to_string());
+        let mut lexer = Lexer::new(input.to_string());
+        let mut parser = Parser::new(&mut lexer);
+
+        let program = parser.parse_program();
+        assert_eq!(parser.errors.len(), 0);
+
+        assert_eq!(
+            program.to_string(),
+            format!("fn foo(x, y) {{\n(x + y)\n}}\n",)
+        );
+    }
+
+    #[test]
+    fn test_multiline_function_declaration() {
+        let input = "fn foo(x, y) { print(x); print(y); x + y; }";
+        Lexer::new(input.to_string());
+        let mut lexer = Lexer::new(input.to_string());
+        let mut parser = Parser::new(&mut lexer);
+
+        let program = parser.parse_program();
+        assert_eq!(parser.errors.len(), 0);
+
+        assert_eq!(
+            program.to_string(),
+            format!("fn foo(x, y) {{\nprint(x);\nprint(y);\n(x + y)\n}}\n",)
         );
     }
 
@@ -698,7 +766,6 @@ mod test {
         let mut parser = Parser::new(&mut lexer);
 
         let program = parser.parse_program();
-        println!("{:?}", parser.errors);
         assert_eq!(parser.errors.len(), 0);
 
         assert_eq!(program.to_string(), format!("add(1, (2 * 3), (4 + 5))\n",));

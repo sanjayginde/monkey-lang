@@ -156,7 +156,7 @@ impl Display for BlockStatement {
                 .iter()
                 .map(|stmt| stmt.to_string())
                 .collect::<Vec<String>>()
-                .join("\n")
+                .join(";\n")
         )
     }
 }
