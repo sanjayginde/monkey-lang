@@ -8,7 +8,7 @@
 pub use super::{Expression, Node, Program, Statement};
 
 // Re-export concrete expression types
-pub use super::{BooleanLiteral, Identifier, IntegerLiteral};
+pub use super::{BooleanLiteral, FunctionLiteral, Identifier, IntegerLiteral};
 
 // Re-export concrete statement types
 pub use super::{BlockStatement, ExpressionStatement, LetStatement, ReturnStatement};

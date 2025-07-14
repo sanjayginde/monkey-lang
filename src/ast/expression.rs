@@ -11,6 +11,7 @@ pub enum Expression {
     Infix(InfixExpression),
     If(IfExpression),
     Call(CallExpression),
+    Function(FunctionLiteral),
 }
 
 impl Node for Expression {
@@ -23,6 +24,7 @@ impl Node for Expression {
             Expression::Infix(expr) => expr.token_literal(),
             Expression::If(expr) => expr.token_literal(),
             Expression::Call(expr) => expr.token_literal(),
+            Expression::Function(expr) => expr.token_literal(),
         }
     }
 }
@@ -37,6 +39,7 @@ impl Display for Expression {
             Expression::Infix(expr) => expr.fmt(f),
             Expression::If(expr) => expr.fmt(f),
             Expression::Call(expr) => expr.fmt(f),
+            Expression::Function(expr) => expr.fmt(f),
         }
     }
 }
@@ -170,6 +173,15 @@ impl Expression {
             condition: Box::new(condition),
             consequence,
             alternative,
+        })
+    }
+
+    pub fn function(name: Identifier, parameters: Vec<Identifier>, body: BlockStatement) -> Self {
+        Expression::Function(FunctionLiteral {
+            token: Token::Function,
+            name,
+            parameters,
+            body,
         })
     }
 
