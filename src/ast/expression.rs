@@ -14,8 +14,8 @@ pub enum Expression {
     Function(FunctionLiteral),
 }
 
-impl Node for Expression {
-    fn token_literal(&self) -> String {
+impl Expression {
+    pub fn token_literal(&self) -> String {
         match self {
             Expression::Identifier(expr) => expr.token_literal(),
             Expression::Integer(expr) => expr.token_literal(),
@@ -50,8 +50,8 @@ pub struct PrefixExpression {
     pub expression: Box<Expression>,
 }
 
-impl Node for PrefixExpression {
-    fn token_literal(&self) -> String {
+impl PrefixExpression {
+    pub fn token_literal(&self) -> String {
         self.operator.to_string()
     }
 }
@@ -69,8 +69,8 @@ pub struct InfixExpression {
     pub right: Box<Expression>,
 }
 
-impl Node for InfixExpression {
-    fn token_literal(&self) -> String {
+impl InfixExpression {
+    pub fn token_literal(&self) -> String {
         self.operator.to_string()
     }
 }
@@ -88,8 +88,8 @@ pub struct IfExpression {
     pub alternative: Option<BlockStatement>,
 }
 
-impl Node for IfExpression {
-    fn token_literal(&self) -> String {
+impl IfExpression {
+    pub fn token_literal(&self) -> String {
         Token::If.to_string()
     }
 }
@@ -116,8 +116,8 @@ pub struct CallExpression {
     pub arguments: Vec<Expression>,
 }
 
-impl Node for CallExpression {
-    fn token_literal(&self) -> String {
+impl CallExpression {
+    pub fn token_literal(&self) -> String {
         Token::LeftParen.to_string()
     }
 }

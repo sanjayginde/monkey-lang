@@ -386,7 +386,7 @@ fn parse_function_parameters(parser: &mut Parser) -> Result<Vec<Identifier>, Par
     }
 
     parser.assert_curr_and_consume(&Token::RightParen)?;
-    return Ok(parameters);
+    Ok(parameters)
 }
 
 fn parse_call_arguments(parser: &mut Parser) -> Result<Vec<Expression>, ParserError> {
@@ -415,7 +415,6 @@ fn parse_call_arguments(parser: &mut Parser) -> Result<Vec<Expression>, ParserEr
 
 #[cfg(test)]
 mod test {
-    use crate::ast::prelude::*;
     use crate::lexer::Lexer;
 
     use super::*;

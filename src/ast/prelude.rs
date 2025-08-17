@@ -5,7 +5,7 @@
 //! statement instead of importing each type individually.
 
 // Re-export the main AST node types
-pub use super::{Expression, Node, Program, Statement};
+pub use super::{Expression, Program, Statement};
 
 // Re-export concrete expression types
 pub use super::{BooleanLiteral, FunctionLiteral, Identifier, IntegerLiteral};
