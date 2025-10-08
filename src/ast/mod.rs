@@ -4,6 +4,7 @@ mod program;
 mod statement;
 
 use std::fmt::Display;
+use std::rc::Rc;
 
 pub use expression::Expression;
 
@@ -15,18 +16,36 @@ pub use program::Program;
 
 use crate::token::Token;
 
-pub trait Node {
-    fn token_literal(&self) -> String;
+pub enum Node {
+    Ident(Identifier),
+    Func(FunctionLiteral),
+    Int(IntegerLiteral),
+    Bool(BooleanLiteral),
+    Stmt(Statement),
+    Expr(Expression),
+}
+
+impl Node {
+    fn token_literal(&self) -> String {
+        match &self {
+            Node::Ident(i) => i.token_literal(),
+            Node::Func(f) => f.token_literal(),
+            Node::Int(i) => i.token_literal(),
+            Node::Bool(b) => b.token_literal(),
+            Node::Stmt(s) => s.token_literal(),
+            Node::Expr(e) => e.token_literal(),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct Identifier {
     pub token: Token,
-    pub name: String,
+    pub name: Rc<str>,
 }
 
-impl Node for Identifier {
-    fn token_literal(&self) -> String {
+impl Identifier {
+    pub fn token_literal(&self) -> String {
         self.token.to_string()
     }
 }
@@ -43,7 +62,7 @@ pub struct IntegerLiteral {
     pub value: i64,
 }
 
-impl Node for IntegerLiteral {
+impl IntegerLiteral {
     fn token_literal(&self) -> String {
         self.token.to_string()
     }
@@ -61,8 +80,8 @@ pub struct BooleanLiteral {
     pub value: bool,
 }
 
-impl Node for BooleanLiteral {
-    fn token_literal(&self) -> String {
+impl BooleanLiteral {
+    pub fn token_literal(&self) -> String {
         self.token.to_string()
     }
 }
@@ -81,8 +100,8 @@ pub struct FunctionLiteral {
     pub body: BlockStatement,
 }
 
-impl Node for FunctionLiteral {
-    fn token_literal(&self) -> String {
+impl FunctionLiteral {
+    pub fn token_literal(&self) -> String {
         self.token.to_string()
     }
 }

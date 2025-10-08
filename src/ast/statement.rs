@@ -9,8 +9,8 @@ pub enum Statement {
     Block(BlockStatement),
 }
 
-impl Node for Statement {
-    fn token_literal(&self) -> String {
+impl Statement {
+    pub fn token_literal(&self) -> String {
         match self {
             Statement::Let(stmt) => stmt.token_literal(),
             Statement::Return(stmt) => stmt.token_literal(),
@@ -87,8 +87,8 @@ pub struct LetStatement {
     pub value: Expression,
 }
 
-impl Node for LetStatement {
-    fn token_literal(&self) -> String {
+impl LetStatement {
+    pub fn token_literal(&self) -> String {
         self.token.to_string()
     }
 }
@@ -105,8 +105,8 @@ pub struct ReturnStatement {
     pub value: Expression,
 }
 
-impl Node for ReturnStatement {
-    fn token_literal(&self) -> String {
+impl ReturnStatement {
+    pub fn token_literal(&self) -> String {
         self.token.to_string()
     }
 }
@@ -123,8 +123,8 @@ pub struct ExpressionStatement {
     pub expression: Expression,
 }
 
-impl Node for ExpressionStatement {
-    fn token_literal(&self) -> String {
+impl ExpressionStatement {
+    pub fn token_literal(&self) -> String {
         self.token.to_string()
     }
 }
@@ -141,8 +141,8 @@ pub struct BlockStatement {
     pub statements: Vec<Statement>,
 }
 
-impl Node for BlockStatement {
-    fn token_literal(&self) -> String {
+impl BlockStatement {
+    pub fn token_literal(&self) -> String {
         self.token.to_string()
     }
 }

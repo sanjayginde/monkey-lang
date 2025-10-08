@@ -84,7 +84,7 @@ impl Lexer {
                         "if" => If,
                         "else" => Else,
                         "return" => Return,
-                        _ => Ident(literal),
+                        _ => Ident(literal.into()),
                     }
                 } else if ch.is_ascii_digit() {
                     let mut literal = String::new();
@@ -97,10 +97,10 @@ impl Lexer {
                     let possible_int = literal.parse();
                     match possible_int {
                         Ok(int) => Int(int),
-                        Err(_) => Illegal(literal),
+                        Err(_) => Illegal(literal.into()),
                     }
                 } else {
-                    Illegal(ch.to_string())
+                    Illegal(ch.to_string().into())
                 }
             }
         }
@@ -169,39 +169,39 @@ if (5 < 10) {
 
         let expected = vec![
             Let,
-            Ident("five".to_string()),
+            Ident("five".into()),
             Assign,
             Int(5),
             Semicolon,
             Let,
-            Ident("ten".to_string()),
+            Ident("ten".into()),
             Assign,
             Int(10),
             Semicolon,
             Let,
-            Ident("add".to_string()),
+            Ident("add".into()),
             Assign,
             Function,
             LeftParen,
-            Ident("x".to_string()),
+            Ident("x".into()),
             Comma,
-            Ident("y".to_string()),
+            Ident("y".into()),
             RightParen,
             LeftBrace,
-            Ident("x".to_string()),
+            Ident("x".into()),
             Plus,
-            Ident("y".to_string()),
+            Ident("y".into()),
             Semicolon,
             RightBrace,
             Semicolon,
             Let,
-            Ident("result".to_string()),
+            Ident("result".into()),
             Assign,
-            Ident("add".to_string()),
+            Ident("add".into()),
             LeftParen,
-            Ident("five".to_string()),
+            Ident("five".into()),
             Comma,
-            Ident("ten".to_string()),
+            Ident("ten".into()),
             RightParen,
             Semicolon,
             Bang,
