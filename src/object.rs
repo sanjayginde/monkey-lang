@@ -8,7 +8,7 @@ pub enum Object {
 }
 
 impl Object {
-    pub fn inspect(&self) -> String {
+    pub fn _inspect(&self) -> String {
         match &self {
             Object::Null => "null".to_owned(),
             Object::Integer(i) => i.to_string(),
@@ -17,6 +17,13 @@ impl Object {
     }
 }
 
-pub fn eval(_n: Node) -> Object {
-    todo!()
+pub fn _eval(_n: Node) -> Object {
+    match _n {
+        Node::Ident(_identifier) => todo!(),
+        Node::Func(_function_literal) => todo!(),
+        Node::Int(_integer_literal) => todo!(),
+        Node::Bool(_boolean_literal) => todo!(),
+        Node::Stmt(_statement) => todo!(),
+        Node::Expr(_expression) => todo!(),
+    }
 }

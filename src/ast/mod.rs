@@ -4,6 +4,7 @@ mod program;
 mod statement;
 
 use std::fmt::Display;
+use std::rc::Rc;
 
 pub use expression::Expression;
 
@@ -40,7 +41,7 @@ impl Node {
 #[derive(Debug, Clone)]
 pub struct Identifier {
     pub token: Token,
-    pub name: String,
+    pub name: Rc<str>,
 }
 
 impl Identifier {

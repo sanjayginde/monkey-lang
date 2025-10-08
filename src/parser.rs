@@ -230,8 +230,8 @@ fn parse_identifier(parser: &mut Parser) -> Result<Identifier, ParserError> {
 
     match token {
         Some(Token::Ident(name)) => Ok(Identifier {
-            token: Token::Ident(name.to_owned()),
-            name: name.to_owned(),
+            token: Token::Ident(name.clone()),
+            name: name.clone(),
         }),
         _ => Err(ParserError::UnexpectedToken(format!(
             "Expected identifier, got {}",
@@ -470,7 +470,7 @@ mod test {
         let let_stmt = program.statements[0].as_let().unwrap();
 
         assert_eq!(let_stmt.token_literal(), "let");
-        assert_eq!(let_stmt.identifier.name, "x");
+        assert_eq!(let_stmt.identifier.name, "x".into());
         assert_eq!(let_stmt.value.token_literal(), "5");
     }
 
@@ -486,7 +486,7 @@ mod test {
 
         let let_stmt = program.statements[0].as_let().unwrap();
         assert_eq!(let_stmt.token_literal(), "let");
-        assert_eq!(let_stmt.identifier.name, "ten");
+        assert_eq!(let_stmt.identifier.name, "ten".into());
         assert_eq!(let_stmt.value.token_literal(), "true");
 
         assert_eq!(
@@ -593,7 +593,7 @@ mod test {
         let stmt = parse_expression_statement(&mut parser).unwrap();
         let identifier = stmt.expression.as_identifier().unwrap();
 
-        assert_eq!(identifier.name, "foobar");
+        assert_eq!(identifier.name, "foobar".into());
     }
 
     #[test]
